@@ -113,6 +113,63 @@
     border-top: 1px dashed var(--hairline); padding-top: 5px; }
   .evt .eg::before { content: "例 "; font-family: var(--mono); font-size: 10px; color: var(--vermilion); }
 
+  /* 事件档案列表 */
+  .evtrow { border: 1px solid var(--hairline); border-radius: 10px; background: #fff;
+    margin-bottom: 8px; overflow: hidden; }
+  .er-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    padding: 11px 16px; cursor: pointer; }
+  .er-head:hover { background: #F7F8FA; }
+  .er-head:focus-visible { outline: 2px solid var(--vermilion); outline-offset: -2px; }
+  .er-head .code { font-family: var(--mono); font-size: 11px; color: var(--grey); letter-spacing: 0.08em; }
+  .er-head b { font-size: 15px; font-family: var(--serif); }
+  .badge { font-size: 11px; border-radius: 99px; padding: 1px 9px; border: 1px solid; white-space: nowrap; }
+  .badge.neg { color: #A33B2A; border-color: #E5C4BC; background: #FBF1EE; }
+  .badge.pos { color: #1E7A4C; border-color: #BFDCCB; background: #EFF8F2; }
+  .badge.dual { color: #4E6A8C; border-color: #C4D2E2; background: #EFF4FA; }
+  .badge.ghost { color: var(--grey); border-color: var(--hairline); background: var(--paper); }
+  .er-fire { font-size: 12.5px; color: #454B5C; }
+  .er-acts { font-size: 11.5px; color: var(--grey); margin-left: auto; white-space: nowrap; }
+  .er-arrow { color: var(--grey); transition: transform 0.15s; }
+  .evtrow.open .er-arrow { transform: rotate(180deg); }
+  .er-body { border-top: 1px solid var(--hairline); padding: 16px 18px 14px; background: #FDFDFB; }
+  .er-body .def { font-size: 13.5px; color: #38405A; }
+  .er-body .eg { font-size: 12.5px; color: var(--grey); margin-bottom: 12px; }
+  .dossier h4 { font-family: var(--serif); font-size: 15px; margin: 16px 0 8px; }
+  .dossier h4:first-child { margin-top: 0; }
+  .dossier h4 span { font-family: var(--mono); font-size: 10.5px; color: var(--grey);
+    margin-left: 8px; letter-spacing: 0.05em; font-weight: 400; }
+  .dstages { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 8px; }
+  .dstage { border: 1px solid var(--hairline); border-radius: 8px; background: #fff;
+    padding: 10px 13px; min-width: 0; }
+  .dstage b { font-size: 11px; color: var(--vermilion); font-family: var(--mono); display: block;
+    margin-bottom: 6px; letter-spacing: 0.06em; }
+  .dstage pre { font-family: var(--mono); font-size: 11.5px; line-height: 1.7; color: #38405A;
+    white-space: pre-wrap; margin: 0; word-break: break-all; }
+  .dstage .say { font-family: var(--serif); font-size: 17px; font-weight: 700; line-height: 1.5; }
+  .dimbar { display: grid; grid-template-columns: 58px 1fr 38px; gap: 7px; align-items: center;
+    font-size: 12px; margin-bottom: 4px; }
+  .dimbar .track { background: var(--card); border-radius: 99px; height: 8px; overflow: hidden; }
+  .dimbar .fill { height: 100%; border-radius: 99px; background: var(--indigo); }
+  .dimbar.neg .fill { background: #A33B2A; }
+  .dimbar .num { font-family: var(--mono); font-size: 10.5px; text-align: right; color: #454B5C; }
+  .apnote { font-size: 11.5px; color: var(--grey); margin-top: 6px; line-height: 1.6; }
+  .vartab { width: 100%; border-collapse: collapse; background: #fff; font-size: 12.5px;
+    border: 1px solid var(--hairline); border-radius: 8px; }
+  .vartab td { padding: 7px 13px; border-bottom: 1px solid #EDF0F5; vertical-align: baseline; }
+  .vartab tr:last-child td { border-bottom: none; }
+  .vchip { display: inline-block; border: 1px solid var(--hairline); border-radius: 99px;
+    padding: 1px 10px; margin: 1px 4px 1px 0; font-size: 12px; background: #fff; white-space: nowrap; }
+  .vchip i { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--grey); }
+  a.vchip { color: var(--indigo); text-decoration: none; border-color: #C4D2E2; }
+  a.vchip:hover { background: var(--card); }
+  .relrow { font-size: 12.5px; color: #454B5C; margin-bottom: 7px; display: flex;
+    gap: 8px; flex-wrap: wrap; align-items: baseline; }
+  .relrow .k { font-family: var(--mono); font-size: 10.5px; color: var(--vermilion);
+    min-width: 60px; letter-spacing: 0.06em; }
+  .relrow .mono { font-family: var(--mono); font-size: 11.5px; color: #38405A; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--ink); }
+
   /* 模拟器 */
   .seg { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 14px; }
   .seg button { font: 12.5px var(--sans); padding: 6px 14px; border-radius: 8px;
@@ -340,22 +397,40 @@ function drawSpace() {
 }
 
 /* ============ 情绪列表 ============ */
-function pageEmotions() {
-  $(head('情绪列表', `全部 ${DATA.meta.categories} 个情绪类别。搜索中文名/英文名，点家族筛选，点击行展开详情。`)
+function pageEmotions(arg) {
+  $(head('情绪列表', `全部 ${DATA.meta.categories} 个情绪类别。搜索中文名/英文名，点家族或语域覆盖筛选，点列头排序，点击行看详情。`)
     + `<input class="search" id="emq" type="search" placeholder="搜索：义愤 / fear / 憋屈…" aria-label="搜索情绪">
        <div class="fambar" id="famfilter"></div>
+       <div class="fambar" id="emcov">
+         <button class="fam on" data-c="all">语域覆盖：全部</button>
+         <button class="fam" data-c="formal">有正式梯</button>
+         <button class="fam" data-c="coll">有口语梯</button>
+         <button class="fam" data-c="plain">仅通用</button>
+       </div>
        <div class="tablewrap"><table>
-         <thead><tr><th>情绪</th><th>家族</th><th>舒服/难受</th><th>激动</th><th>行动倾向</th><th>半衰期(分)</th></tr></thead>
+         <thead><tr><th>情绪</th><th>家族</th>
+           <th class="sortable" data-k="v">舒服/难受 ↕</th>
+           <th class="sortable" data-k="a">激动 ↕</th>
+           <th>行动倾向</th>
+           <th class="sortable" data-k="half_life">半衰期(分) ↕</th></tr></thead>
          <tbody id="emrows"></tbody></table></div>
        <div class="detail" id="emdetail" style="margin-top:12px">点击一行查看详情。</div>`);
   const sel = new Set(Object.keys(FAM));
+  let cov = 'all', sortK = null, sortD = 1;
   const bar = document.getElementById('famfilter');
   bar.innerHTML = Object.entries(FAM).map(([k, f]) =>
     `<button class="fam on" data-fam="${k}"><i style="background:${f.col}"></i>${f.zh}</button>`).join('');
+  const covOf = c => (c.reg_ladders || {}).formal ? 'formal'
+    : (c.reg_ladders || {}).colloquial ? 'coll' : 'plain';
   function rows() {
     const q = document.getElementById('emq').value.trim().toLowerCase();
-    const list = DATA.categories.filter(c =>
-      sel.has(c.family) && (!q || c.zh.includes(q) || c.en.toLowerCase().includes(q)));
+    let list = DATA.categories.filter(c =>
+      sel.has(c.family) && (cov === 'all' || covOf(c) === cov) &&
+      (!q || c.zh.includes(q) || c.en.toLowerCase().includes(q)));
+    if (sortK) {
+      list = [...list].sort((x, y) => ((x[sortK] ?? -1) - (y[sortK] ?? -1)) * sortD);
+    }
+    document.querySelectorAll('#emcov .fam').forEach(b => b.classList.toggle('on', b.dataset.c === cov));
     document.getElementById('emrows').innerHTML = list.map(c => `
       <tr data-id="${c.id}" style="cursor:pointer">
         <td><b>${c.zh}</b> <span style="color:var(--grey);font-size:11px;font-family:var(--mono)">${c.id}</span></td>
@@ -366,6 +441,16 @@ function pageEmotions() {
         <td class="v num">${c.half_life ?? '—'}</td></tr>`).join('')
       || `<tr><td colspan="6" style="color:var(--grey)">无匹配</td></tr>`;
   }
+  function showDetail(c) {
+    const ladders = (c.ladder || []).map(([th, w]) =>
+      `强度≥${th}：「${w}」`).join('　');
+    const regs = Object.entries(c.reg_ladders || {}).map(([r, ld]) =>
+      `${r === 'formal' ? '正式' : '口语'}：${ld.map(x => x[1]).join('/')}`).join('　');
+    document.getElementById('emdetail').innerHTML =
+      `<b>${c.zh}</b><span>${c.en}</span><span style="color:${FAM[c.family].col}">${FAM[c.family].zh}</span>
+       <span>4D：V ${c.v} / A ${c.a} / D ${c.d} / U ${c.u}</span>
+       <span>${ladders || '通用分档'}</span><span>${regs || '语域回退通用'}</span>`;
+  }
   bar.addEventListener('click', e => {
     const b = e.target.closest('.fam'); if (!b) return;
     const k = b.dataset.fam;
@@ -374,92 +459,308 @@ function pageEmotions() {
     b.classList.toggle('on', sel.has(k));
     rows();
   });
+  document.getElementById('emcov').addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    cov = cov === b.dataset.c ? 'all' : b.dataset.c;
+    rows();
+  });
+  document.querySelector('#emrows').closest('table').querySelector('thead').addEventListener('click', e => {
+    const th = e.target.closest('th.sortable'); if (!th) return;
+    const k = th.dataset.k;
+    if (sortK === k) sortD = -sortD; else { sortK = k; sortD = 1; }
+    document.querySelectorAll('th.sortable').forEach(x =>
+      x.textContent = x.textContent.replace(/ [↑↓↕]$/, '') + (x === th ? (sortD > 0 ? ' ↑' : ' ↓') : ' ↕'));
+    rows();
+  });
   document.getElementById('emq').addEventListener('input', rows);
   document.getElementById('emrows').addEventListener('click', e => {
     const tr = e.target.closest('tr[data-id]'); if (!tr) return;
     const c = DATA.categories.find(k => k.id === tr.dataset.id);
-    const ladders = (c.ladder || []).map(([th, w]) =>
-      `强度≥${th}：「${w}」`).join('　');
-    const regs = Object.entries(c.reg_ladders || {}).map(([r, ld]) =>
-      `${r === 'formal' ? '正式' : '口语'}：${ld.map(x => x[1]).join('/')}`).join('　');
-    document.getElementById('emdetail').innerHTML =
-      `<b>${c.zh}</b><span>${c.en}</span><span style="color:${FAM[c.family].col}">${FAM[c.family].zh}</span>
-       <span>4D：V ${c.v} / A ${c.a} / D ${c.d} / U ${c.u}</span>
-       <span>${ladders || '通用分档'}</span><span>${regs}</span>`;
+    if (c) showDetail(c);
+  });
+  rows();
+  if (arg) {
+    const c = DATA.categories.find(k => k.id === arg || k.zh === arg);
+    if (c) showDetail(c);
+  }
+}
+
+/* ============ 事件列表 ============ */
+const BRANCH_ZH = { consequences: '事件后果', prospects: '前景', agency_self: '自己行为',
+  agency_other: '他人行为', attraction: '对象吸引', fortunes: '他人际遇', bond: '联结',
+  comparison: '社会比较', epistemic: '认识', aesthetic_dim: '审美', justice: '正义' };
+const VALZH = { neg: '受损', pos: '利好', dual: '双向' };
+
+function dossierHTML(t) {
+  const rep = t.rep;
+  const gi = Object.entries(rep.ev.goal_impacts).map(([k, v]) => `${k}: ${v > 0 ? '+' : ''}${v}`).join('  ') || '（无目标冲击）';
+  const ap = rep.ap;
+  const dim = (label, v, neg) => v == null ? '' : `
+    <div class="dimbar ${neg && v < 0 ? 'neg' : ''}"><span>${label}</span>
+      <div class="track"><div class="fill" style="width:${Math.min(100, Math.abs(v) * 100).toFixed(0)}%"></div></div>
+      <span class="num">${v > 0 ? '+' : ''}${v}</span></div>`;
+  const famCol = c => FAM[c]?.col || '#878C99';
+  return `
+  <div class="def">${t.def}。</div>
+  ${t.eg ? `<div class="eg">例 ${t.eg}</div>` : ''}
+  <div class="dossier">
+    <h4>代表事件真算「${rep.title}」<span>单事件孤立运行 · 数值为引擎真实输出</span></h4>
+    <div class="dstages">
+      <div class="dstage"><b>① 事件字段</b>
+        <pre>category  ${rep.ev.category}
+goal_impacts  ${gi}
+归因  ${rep.ev.agent || '—'} · ${rep.ev.intent} · 对象 ${rep.ev.affects}
+${rep.ev.extras}
+${rep.ev.dims}</pre></div>
+      <div class="dstage"><b>② 评价剖面（SEC）</b>
+        ${dim('目标相关', ap.rel)}${dim('促进/阻碍', ap.cond, true)}${dim('紧迫', ap.urg)}
+        ${dim('新异', ap.nov)}${dim('控制感', ap.ctl)}${dim('自我标准', ap.int_std, true)}${dim('外部规范', ap.ext_std, true)}
+        <div class="apnote">归因：${ap.agent || '无'}（${ap.intent}）→ ${ap.branches.map(b => BRANCH_ZH[b] || b).join(' / ')}</div></div>
+      <div class="dstage"><b>③ 点燃</b>
+        <div class="bars">${rep.fired.map(f => `
+          <div class="bar-row"><span title="${f.zh}">${f.word && f.word !== f.zh ? f.word + '（' + f.zh + '）' : f.zh}</span>
+            <div class="track"><div class="fill" style="width:${(f.intensity * 100).toFixed(0)}%;background:${famCol(f.family)}"></div></div>
+            <span class="num">${f.intensity.toFixed(2)}</span></div>`).join('')
+          || '<span style="color:var(--grey);font-size:12.5px">（无显著情绪）</span>'}</div>
+        <div class="apnote">点燃类别按强度降序；词为该强度下的词表分档词。</div></div>
+      <div class="dstage"><b>④ 动力学余波</b>
+        <pre>心情(慢速层)  ${rep.after.mood > 0 ? '+' : ''}${rep.after.mood}
+唤醒残余  ${rep.after.residue}
+反刍压力  ${rep.after.rumination}
+对象记账  ${Object.entries(rep.after.charges).map(([k, v]) => `${k} +${v}`).join('  ') || '—'}</pre></div>
+      <div class="dstage"><b>⑤ 表达</b>
+        <div class="say">「${rep.say || '（平静）'}」</div>
+        <div class="apnote">${rep.fired.map(f => f.word && f.word !== f.zh ? `${f.word}（${f.zh}）` : f.zh).slice(0, 3).join(' · ')}</div></div>
+    </div>
+    <h4>变体点燃范围<span>同一事件类型，换关键评价量后引擎点燃什么</span></h4>
+    <table class="vartab">${t.variants.map(v => `
+      <tr><td style="width:220px">${v.label}</td><td>${
+        v.fired.map(f => `<span class="vchip">${f.word || f.zh}<i> ${f.intensity.toFixed(2)}</i></span>`).join('')
+        || '<span style="color:var(--grey)">（无显著情绪）</span>'}</td></tr>`).join('')}</table>
+    <h4>关联<span>点击可跳转对应页面</span></h4>
+    <div class="relrow"><span class="k">回放</span>${
+      t.acts.length ? t.acts.map(n => `<a class="vchip" href="#replay@${n}">第${n}幕</a>`).join('')
+      : '<span style="color:var(--grey)">demo 八幕中未出现</span>'}</div>
+    <div class="relrow"><span class="k">模拟器</span><a class="vchip" href="#sim@${t.id}">「${t.label}」参数扫描（${t.knob}）</a></div>
+    <div class="relrow"><span class="k">词表</span>${
+      rep.fired.slice(0, 4).map(f => `<a class="vchip" href="#lexicon@${encodeURIComponent(f.zh)}">${f.zh}</a>`).join('')
+      || '—'}</div>
+    ${t.tests.length ? `<div class="relrow"><span class="k">测试</span>${
+      t.tests.map(([f, d]) => `<span class="mono">${f}</span> — ${d}`).join('；')}</div>` : ''}
+    ${t.rules.length ? `<div class="relrow"><span class="k">规则</span>${
+      t.rules.map(([id, d]) => `<b style="font-family:var(--mono);font-size:11.5px">${id}</b> ${d}`).join('；')}</div>` : ''}
+  </div>`;
+}
+
+function pageEvents() {
+  const ts = DATA.event_types;
+  const cnt = { neg: 0, pos: 0, dual: 0 };
+  ts.forEach(t => cnt[t.valence]++);
+  $(head('事件列表', '输入事件分 11 类——任何一件事至少归入一类，归入哪类决定它走哪条评价路径。每行可展开完整档案：代表事件五阶段引擎真算、变体点燃范围、回放/模拟器/词表跳转与规则出处。')
+    + `<input class="search" id="evq" type="search" placeholder="搜索：冒犯 / 比较 / 憋屈 / 虚构…" aria-label="搜索事件类型">
+       <div class="fambar" id="evfilter">
+         <button class="fam on" data-v="all">全部 ${ts.length}</button>
+         <button class="fam" data-v="neg">受损 ${cnt.neg}</button>
+         <button class="fam" data-v="pos">利好 ${cnt.pos}</button>
+         <button class="fam" data-v="dual">双向 ${cnt.dual}</button>
+         <button class="fam" data-v="story">回放中出现 ${ts.filter(t => t.acts.length).length}</button>
+       </div>
+       <div id="evlist"></div>
+       <div class="src">徽标（受损/利好/双向）与归因标注为展示层归纳；点燃/余波/表达全部为引擎真实输出（reader 画像，单事件孤立运行，与叙事回放页的累积状态不同）。</div>`);
+  let vf = 'all', open = null;
+  function rows() {
+    const q = document.getElementById('evq').value.trim();
+    const list = ts.filter(t => {
+      if (vf === 'story' && !t.acts.length) return false;
+      if (vf !== 'all' && vf !== 'story' && t.valence !== vf) return false;
+      if (!q) return true;
+      const hay = t.zh + t.def + t.eg + t.attr + t.knob + t.rep.title +
+        t.rep.fired.map(f => f.zh + (f.word || '')).join('') +
+        t.variants.map(v => v.label + v.fired.map(f => f.zh).join('')).join('');
+      return hay.includes(q);
+    });
+    document.getElementById('evlist').innerHTML = list.map(t => `
+      <div class="evtrow" data-id="${t.id}">
+        <div class="er-head" role="button" tabindex="0" aria-expanded="false">
+          <span class="code">${t.id}</span><b>${t.zh}</b>
+          <span class="badge ${t.valence}">${VALZH[t.valence]}</span>
+          <span class="badge ghost">${t.attr}</span>
+          <span class="er-fire">常点燃：${t.rep.fired.slice(0, 3).map(f => f.word || f.zh).join(' · ') || '—'}</span>
+          <span class="er-acts">${t.acts.length ? '回放 第' + t.acts.join(',') + '幕' : ''}</span>
+          <span class="er-arrow">▾</span>
+        </div>
+        <div class="er-body" hidden></div>
+      </div>`).join('') || '<div style="color:var(--grey);padding:20px 4px">无匹配</div>';
+    open = null;
+  }
+  function toggle(row) {
+    const id = row.dataset.id;
+    const body = row.querySelector('.er-body');
+    const willOpen = row !== open;
+    document.querySelectorAll('.evtrow.open').forEach(r => {
+      r.classList.remove('open');
+      r.querySelector('.er-body').hidden = true;
+      r.querySelector('.er-head').setAttribute('aria-expanded', 'false');
+    });
+    if (willOpen) {
+      const t = ts.find(x => x.id === id);
+      body.innerHTML = dossierHTML(t);
+      row.classList.add('open');
+      body.hidden = false;
+      row.querySelector('.er-head').setAttribute('aria-expanded', 'true');
+      open = row;
+    } else open = null;
+  }
+  document.getElementById('evfilter').addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    vf = b.dataset.v;
+    document.querySelectorAll('#evfilter .fam').forEach(x => x.classList.toggle('on', x === b));
+    rows();
+  });
+  document.getElementById('evq').addEventListener('input', rows);
+  document.getElementById('evlist').addEventListener('click', e => {
+    const h = e.target.closest('.er-head');
+    if (h) { toggle(h.closest('.evtrow')); return; }
+    const a = e.target.closest('a.vchip');
+    if (a) e.stopPropagation();   // 让 hash 链接正常跳转
+  });
+  document.getElementById('evlist').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const h = e.target.closest('.er-head');
+    if (h) { e.preventDefault(); toggle(h.closest('.evtrow')); }
   });
   rows();
 }
 
-/* ============ 事件列表 ============ */
-function pageEvents() {
-  $(head('事件列表', '输入事件分 11 类——任何一件事至少归入一类，归入哪类决定它走哪条评价路径。')
-    + `<div class="cards">${DATA.event_types.map(t => `
-      <div class="evt"><div class="code">${t.id}<b>${t.zh}</b></div>
-        <p>${t.def}</p><div class="eg">${t.eg}</div></div>`).join('')}</div>`);
-}
-
 /* ============ 词表浏览器 ============ */
-function pageLexicon() {
-  $(head('词表浏览器', '88 个情绪的完整词条：每个情绪在不同强度下用什么词、正式/私下场合怎么换词。')
+function pageLexicon(arg) {
+  $(head('词表浏览器', '88 个情绪的完整词条：每个情绪在不同强度下用什么词、正式/私下场合怎么换词。可按家族与语域覆盖筛选。')
     + `<input class="search" id="lxq" type="search" placeholder="搜索词或情绪：爽 / 破防 / 义愤…" aria-label="搜索词表">
+       <div class="fambar" id="lxfam"></div>
+       <div class="fambar" id="lxcov">
+         <button class="fam on" data-c="all">语域覆盖：全部</button>
+         <button class="fam" data-c="formal">有正式梯</button>
+         <button class="fam" data-c="coll">有口语梯</button>
+         <button class="fam" data-c="plain">仅通用（回退）</button>
+       </div>
        <div class="tablewrap"><table>
-       <thead><tr><th>情绪</th><th>通用词（按强度升档）</th><th>正式说法</th><th>口语说法</th></tr></thead>
+       <thead><tr><th>情绪</th><th>家族</th><th>通用词（按强度升档）</th><th>正式说法</th><th>口语说法</th></tr></thead>
        <tbody id="lxrows"></tbody></table></div>
        <div class="src">词表为引擎实际使用值（emotion_os/expression/lexicon.py）；语域梯只覆盖语域差异显著的类别，其余回退通用词。</div>`);
+  const sel = new Set(Object.keys(FAM));
+  let cov = 'all';
+  document.getElementById('lxfam').innerHTML = Object.entries(FAM).map(([k, f]) =>
+    `<button class="fam on" data-fam="${k}"><i style="background:${f.col}"></i>${f.zh}</button>`).join('');
+  const covOf = c => (c.reg_ladders || {}).formal ? 'formal'
+    : (c.reg_ladders || {}).colloquial ? 'coll' : 'plain';
   function rows() {
     const q = document.getElementById('lxq').value.trim();
     const list = DATA.categories.filter(c => {
+      if (!sel.has(c.family)) return false;
+      if (cov !== 'all' && covOf(c) !== cov) return false;
       if (!q) return true;
       const words = (c.ladder || []).map(x => x[1]).join('') +
         Object.values(c.reg_ladders || {}).flat().map(x => x[1]).join('');
       return c.zh.includes(q) || words.includes(q);
     });
+    document.querySelectorAll('#lxcov .fam').forEach(b => b.classList.toggle('on', b.dataset.c === cov));
     document.getElementById('lxrows').innerHTML = list.map(c => {
       const ladder = (c.ladder || []).map(([th, w]) =>
         `<span style="display:inline-block;margin:1px 6px 1px 0;border:1px solid var(--hairline);border-radius:6px;padding:0 8px;background:var(--paper)">${w}<span style="color:var(--grey);font-size:10px;font-family:var(--mono)"> ≥${th}</span></span>`).join('');
       const f = (c.reg_ladders || {}).formal?.map(x => x[1]).join(' / ') || '—';
       const k = (c.reg_ladders || {}).colloquial?.map(x => x[1]).join(' / ') || '—';
-      return `<tr><td><b>${c.zh}</b></td><td>${ladder}</td><td>${f}</td><td>${k}</td></tr>`;
-    }).join('') || `<tr><td colspan="4" style="color:var(--grey)">无匹配</td></tr>`;
+      return `<tr><td><b>${c.zh}</b></td><td><span style="color:${FAM[c.family].col}">●</span></td><td>${ladder}</td><td>${f}</td><td>${k}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="color:var(--grey)">无匹配</td></tr>`;
   }
+  document.getElementById('lxfam').addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    const k = b.dataset.fam;
+    sel.has(k) ? sel.delete(k) : sel.add(k);
+    if (!sel.size) sel.add(k);
+    b.classList.toggle('on', sel.has(k));
+    rows();
+  });
+  document.getElementById('lxcov').addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    cov = cov === b.dataset.c ? 'all' : b.dataset.c;
+    rows();
+  });
   document.getElementById('lxq').addEventListener('input', rows);
   rows();
+  if (arg) {
+    document.getElementById('lxq').value = arg;
+    rows();
+  }
 }
 
 /* ============ 参数总览 ============ */
 function pageParams() {
-  $(head('参数总览', '引擎的两组底层参数，一行一条全量列出；「自设」表示文献无数值、引擎取工程近似。')
-    + `<div class="panel"><h3>评价维度（20 项，SEC 四检查 + 派生）h3><div class="sub">评价器对每个事件输出的全部字段</div>
+  $(head('参数总览', '引擎的两组底层参数，一行一条全量列出；「自设」表示文献无数值、引擎取工程近似。可搜索、可按 SEC 分组筛。')
+    + `<input class="search" id="pq" type="search" placeholder="搜索：控制 / 半衰期 / loss…" aria-label="搜索参数">
+       <div class="fambar" id="pgroup">
+         <button class="fam on" data-g="all">全部分组</button>
+         <button class="fam" data-g="SEC① 相关性">SEC① 相关性</button>
+         <button class="fam" data-g="SEC② 含义">SEC② 含义</button>
+         <button class="fam" data-g="SEC③ 应对潜力">SEC③ 应对</button>
+         <button class="fam" data-g="SEC④ 规范意义">SEC④ 规范</button>
+         <button class="fam" data-g="派生">派生</button>
+       </div>
+       <div class="panel"><h3>评价维度（20 项，SEC 四检查 + 派生）</h3>
+       <div class="sub">评价器对每个事件输出的全部字段</div>
        <div class="tablewrap"><table><thead><tr><th>分组</th><th>字段</th><th>含义</th><th>取值</th></tr></thead>
-       <tbody>${DATA.appraisal_dims.map(d => `
-         <tr><td><span class="grp">${d.group}</span></td><td class="f">${d.field}</td>
-             <td>${d.zh}</td><td class="v">${d.range}</td></tr>`).join('')}</tbody></table></div></div>
+       <tbody id="pdim"></tbody></table></div></div>
        <div class="panel"><h3>动力学与强度常数（14 项）</h3><div class="sub">决定情绪如何衰减、累积与放大</div>
        <div class="tablewrap"><table><thead><tr><th>常数</th><th>值</th><th>含义</th><th>出处</th></tr></thead>
-       <tbody>${DATA.dynamics_consts.map(c => `
-         <tr><td><b style="font-weight:600">${c.zh}</b><br>
-             <span style="font-family:var(--mono);font-size:11px;color:var(--grey)">${c.field}</span></td>
-             <td class="v num">${c.value}</td><td>${c.meaning}</td><td class="src">${c.src}</td></tr>`).join('')}
-       </tbody></table></div></div>
+       <tbody id="pconst"></tbody></table></div></div>
        <div class="panel"><h3>各情绪家族半衰期（分钟）</h3>
-       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px">
+       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px" id="phalf">
        ${DATA.family_halflives.map(([f, v]) => `
          <div style="border:1px solid var(--hairline);border-radius:8px;background:#fff;padding:6px 12px;font-size:12.5px;display:flex;justify-content:space-between">
            <span>${FAMZH[f] || f}</span><b class="num" style="font-family:var(--mono);color:var(--indigo)">${v}</b></div>`).join('')}
        </div></div>`);
+  let grp = 'all';
+  function rows() {
+    const q = document.getElementById('pq').value.trim().toLowerCase();
+    const hit = (...fields) => !q || fields.join(' ').toLowerCase().includes(q);
+    document.getElementById('pdim').innerHTML = DATA.appraisal_dims
+      .filter(d => (grp === 'all' || d.group === grp) && hit(d.field, d.zh, d.group, d.range))
+      .map(d => `<tr><td><span class="grp">${d.group}</span></td><td class="f">${d.field}</td>
+        <td>${d.zh}</td><td class="v">${d.range}</td></tr>`).join('')
+      || `<tr><td colspan="4" style="color:var(--grey)">无匹配</td></tr>`;
+    document.getElementById('pconst').innerHTML = DATA.dynamics_consts
+      .filter(c => hit(c.zh, c.field, String(c.value), c.meaning, c.src))
+      .map(c => `<tr><td><b style="font-weight:600">${c.zh}</b><br>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--grey)">${c.field}</span></td>
+        <td class="v num">${c.value}</td><td>${c.meaning}</td><td class="src">${c.src}</td></tr>`).join('')
+      || `<tr><td colspan="4" style="color:var(--grey)">无匹配</td></tr>`;
+    document.getElementById('phalf').innerHTML = DATA.family_halflives
+      .filter(([f, v]) => hit(FAMZH[f] || f, String(v)))
+      .map(([f, v]) => `
+        <div style="border:1px solid var(--hairline);border-radius:8px;background:#fff;padding:6px 12px;font-size:12.5px;display:flex;justify-content:space-between">
+          <span>${FAMZH[f] || f}</span><b class="num" style="font-family:var(--mono);color:var(--indigo)">${v}</b></div>`).join('')
+      || `<div style="color:var(--grey);font-size:13px">无匹配</div>`;
+    document.querySelectorAll('#pgroup .fam').forEach(b => b.classList.toggle('on', b.dataset.g === grp));
+  }
+  document.getElementById('pgroup').addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    grp = grp === b.dataset.g ? 'all' : b.dataset.g;
+    rows();
+  });
+  document.getElementById('pq').addEventListener('input', rows);
+  rows();
 }
 
 /* ============ 事件模拟器 ============ */
-function pageSim() {
+function pageSim(arg) {
   const types = Object.entries(DATA.sim_matrix);
-  const st = { tid: types[0][0], imp: -0.6, intent: 'deliberate', ctl: 0.5 };
-  $(head('事件模拟器', '选事件类型、调三个关键参数，看引擎点燃哪些情绪。每个值都是引擎真实计算的结果（预计算参数扫描矩阵，非前端估算）。')
+  const st = { tid: (arg && DATA.sim_matrix[arg]) ? arg : types[0][0], imp: -0.6, intent: 'deliberate', ctl: 0.5 };
+  $(head('事件模拟器', `全部 ${types.length} 类事件都可调参（11 类 × 冲击 7 档 × 故意性 3 档 × 控制感 3 档 = 693 组引擎预计算）。每个值都是引擎真实计算的结果，非前端估算。`)
     + `<div class="panel">
       <h3>① 事件类型</h3>
       <div class="seg" id="simtype">${types.map(([tid, m]) =>
         `<button data-t="${tid}" class="${tid === st.tid ? 'on' : ''}">${m.label}</button>`).join('')}</div>
       <h3>② 参数</h3>
-      <div class="slider-row"><span>对目标的冲击</span>
+      <div class="slider-row"><span id="impname">对目标的冲击</span>
         <input type="range" id="s-imp" min="0" max="6" step="1" value="1"
                aria-label="对目标的冲击"><output id="o-imp"></output></div>
       <div class="slider-row"><span>对方是故意的吗</span>
@@ -474,6 +775,9 @@ function pageSim() {
   const INTS = ['deliberate', 'accidental', 'unknown'];
   const INTZH = { deliberate: '故意', accidental: '无意', unknown: '不明' };
   const CTLS = [0.2, 0.5, 0.8];
+  function setKnob() {
+    document.getElementById('impname').textContent = DATA.sim_matrix[st.tid].knob || '对目标的冲击';
+  }
   function fmt() {
     st.imp = IMPS[+document.getElementById('s-imp').value];
     st.intent = INTS[+document.getElementById('s-int').value];
@@ -485,7 +789,7 @@ function pageSim() {
     const row = m.rows.find(r => r.imp === st.imp && r.intent === st.intent && r.ctl === st.ctl);
     const out = document.getElementById('simout');
     if (!row || !row.top.length) {
-      out.innerHTML = `<div class="say" style="color:var(--grey)">（无显著情绪——这事对主角不重要或无冲击）</div>`;
+      out.innerHTML = `<div class="say" style="color:var(--grey)">（无显著情绪——该配置下引擎未点燃任何类别，边界同样真实）</div>`;
       return;
     }
     out.innerHTML = `<div style="font-size:12px;color:var(--grey);font-family:var(--mono)">引擎输出（效价 ${row.v > 0 ? '+' : ''}${row.v} / 唤醒 ${row.a}）</div>
@@ -499,10 +803,12 @@ function pageSim() {
     const b = e.target.closest('button'); if (!b) return;
     st.tid = b.dataset.t;
     document.querySelectorAll('#simtype button').forEach(x => x.classList.toggle('on', x === b));
+    setKnob();
     fmt();
   });
   ['s-imp', 's-int', 's-ctl'].forEach(id =>
     document.getElementById(id).addEventListener('input', fmt));
+  setKnob();
   fmt();
 }
 
@@ -583,9 +889,9 @@ function pagePeakEnd() {
 }
 
 /* ============ 叙事回放 ============ */
-function pageReplay() {
+function pageReplay(arg) {
   const ev = DATA.events;
-  let cur = 0;
+  let cur = Math.min(ev.length - 1, Math.max(0, (parseInt(arg, 10) || 1) - 1));
   $(head('叙事回放', '一段八幕示例叙事（憋屈铺垫 → 反杀 → 和解）逐幕回放：每幕的表达词、情绪强度、心情与记忆。')
     + `<div class="steps-nav" id="rpnav">${ev.map((e, i) =>
       `<button data-i="${i}">第${i + 1}幕</button>`).join('')}</div>
@@ -649,14 +955,15 @@ function pageReplay() {
   document.getElementById('rpnav').addEventListener('click', e => {
     const b = e.target.closest('button'); if (b) show(+b.dataset.i);
   });
-  show(0);
+  show(cur);
 }
 
 /* ============ 情绪对比 ============ */
 function pageCompare() {
   $(head('情绪对比', '选 2–4 个情绪类别，在 4D 坐标上并排对比（雷达图 + 数值表）。')
     + `<div class="panel radar-frame">
-      <div><h3 style="margin-bottom:8px">已选（点下方词条增删）</h3>
+      <div style="min-width:0"><h3 style="margin-bottom:8px">已选（点下方词条增删）</h3>
+        <input class="search" id="cmq" type="search" placeholder="在 88 个类别中搜索…" aria-label="搜索对比候选" style="margin-bottom:8px;max-width:300px">
         <div class="picklist" id="cmpick"></div></div>
       <svg id="radar" role="img" aria-label="4D雷达对比"></svg>
     </div>
@@ -667,7 +974,10 @@ function pageCompare() {
   const DIMS = [['v', '舒服/难受'], ['a', '激动'], ['d', '支配'], ['u', '不可预测']];
   function draw() {
     const cats = DATA.categories.filter(c => sel.has(c.id));
-    document.getElementById('cmpick').innerHTML = DATA.categories.map(c =>
+    const q = (document.getElementById('cmq').value || '').trim();
+    document.getElementById('cmpick').innerHTML = DATA.categories
+      .filter(c => !q || c.zh.includes(q) || c.en.toLowerCase().includes(q.toLowerCase()))
+      .map(c =>
       `<button class="pick ${sel.has(c.id) ? 'on' : ''}" data-id="${c.id}">${c.zh}</button>`).join('');
     document.getElementById('cmrows').innerHTML = cats.map(c => `
       <tr><td><b style="color:${FAM[c.family].col}">${c.zh}</b></td>
@@ -714,16 +1024,37 @@ function pageCompare() {
     if (sel.has(id)) { if (sel.size > 1) sel.delete(id); } else { if (sel.size < 4) sel.add(id); }
     draw();
   });
+  document.getElementById('cmq').addEventListener('input', draw);
   draw();
 }
 
 /* ============ 机制图鉴 ============ */
 function pageMechs() {
-  $(head('机制图鉴', '引擎实现的关键心理学机制，每个带可检验要点与文献出处。')
-    + `<div class="mechgrid">${DATA.mechs.map(m => `
-      <div class="mechcard"><h3>${m.t}</h3><div class="one">${m.one}</div>
+  $(head('机制图鉴', '引擎实现的关键心理学机制，每个带可检验要点与文献出处；可按管线阶段筛选。')
+    + `<div class="fambar" id="mfilter">
+         <button class="fam on" data-t="all">全部 ${DATA.mechs.length}</button>
+         <button class="fam" data-t="评价">评价</button>
+         <button class="fam" data-t="生成">生成</button>
+         <button class="fam" data-t="动力学">动力学</button>
+       </div>
+       <div class="mechgrid" id="mgrid"></div>`);
+  let tag = 'all';
+  function rows() {
+    const list = DATA.mechs.filter(m => tag === 'all' || m.tag === tag);
+    document.querySelectorAll('#mfilter .fam').forEach(b => b.classList.toggle('on', b.dataset.t === tag));
+    document.getElementById('mgrid').innerHTML = list.map(m => `
+      <div class="mechcard"><span class="badge ghost" style="margin-bottom:6px;display:inline-block">${m.tag}</span>
+        <h3>${m.t}</h3><div class="one">${m.one}</div>
         <ul>${m.pts.map(p => `<li>${p}</li>`).join('')}</ul>
-        <div class="src">出处：${m.src}</div></div>`).join('')}</div>`);
+        <div class="src">出处：${m.src}</div></div>`).join('')
+      || '<div style="color:var(--grey)">无匹配</div>';
+  }
+  document.getElementById('mfilter').addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    tag = tag === b.dataset.t ? 'all' : b.dataset.t;
+    rows();
+  });
+  rows();
 }
 
 /* ============ LLM 端到端 ============ */
@@ -754,10 +1085,13 @@ const PAGES = { home: pageHome, emotions: pageEmotions, events: pageEvents,
   mechs: pageMechs, llm: pageLLM };
 function route() {
   const h = (location.hash || '#home').slice(1);
-  const fn = PAGES[h] || pageHome;
+  const at = h.indexOf('@');
+  const p = at < 0 ? h : h.slice(0, at);
+  const arg = at < 0 ? '' : decodeURIComponent(h.slice(at + 1));
+  const fn = PAGES[p] || pageHome;
   document.querySelectorAll('#nav a').forEach(a =>
-    a.classList.toggle('on', a.dataset.p === (PAGES[h] ? h : 'home')));
-  fn();
+    a.classList.toggle('on', a.dataset.p === (PAGES[p] ? p : 'home')));
+  fn(arg);
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
