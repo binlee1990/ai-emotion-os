@@ -12,6 +12,7 @@ from typing import Any, Callable
 
 from ..core.event import AestheticInfo, BondInfo, Event, MoralInfo, SocialInfo
 from ..core.types import EventCategory, Intent, TimeOrientation
+from .entity_resolver import EntityResolver
 
 
 class EventParseError(ValueError):
@@ -197,7 +198,7 @@ def parse_event(payload: dict[str, Any] | str) -> ParseOutcome:
         kwargs["moral"] = MoralInfo(
             severity=_clip(moral.get("severity", 0.5), 0.0, 1.0, "moral.severity", warnings),
             victim=str(moral.get("victim", "self")),
-            violator=moral.get("violator"),
+            violator=str(moral["violator"]) if moral.get("violator") is not None else None,
             virtue=_to_bool(moral.get("virtue", False), False, "moral.virtue", warnings),
         )
     social = payload.get("social")
@@ -239,10 +240,24 @@ def parse_event(payload: dict[str, Any] | str) -> ParseOutcome:
 
 @dataclass
 class NLEventAdapter:
-    """把叙事文本变成 Event：prompt 契约 → 注入的 LLM 调用 → 解析校验。"""
+    """把叙事文本变成 Event：prompt 契约 → 注入的 LLM 调用 → 解析校验。
 
-    llm_call: Callable[[str], str]     # provider 无关：prompt 进，JSON 文本出
+    resolver（v0.4，可选）：跨事件实体规范化——adapt 时把已见实体名单注入
+    prompt（LLM 复用写法，主防线），parse 后对实体字段做别名/已见归一（兜底）。
+    """
+
+    llm_call: Callable[[str], str]     # provider 无关：prompt 进，JSON 出
+    resolver: EntityResolver | None = None
 
     def adapt(self, narrative_text: str) -> ParseOutcome:
-        raw = self.llm_call(build_extraction_prompt(narrative_text))
-        return parse_event(raw)
+        prompt = build_extraction_prompt(narrative_text)
+        if self.resolver is not None:
+            hint = self.resolver.roster_hint()
+            if hint:
+                prompt = f"{prompt}\n\n{hint}"
+        raw = self.llm_call(prompt)
+        outcome = parse_event(raw)
+        if self.resolver is not None:
+            resolved = self.resolver.resolve_event(outcome.event)
+            return ParseOutcome(event=resolved, warnings=outcome.warnings)
+        return outcome

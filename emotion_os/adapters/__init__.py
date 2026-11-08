@@ -5,6 +5,7 @@ from .cli_providers import (
     claude_cli_call,
     codex_cli_call,
 )
+from .entity_resolver import EntityResolver
 from .nl_event import (
     EVENT_JSON_CONTRACT,
     NLEventAdapter,
@@ -21,6 +22,7 @@ __all__ = [
     "EventParseError",
     "build_extraction_prompt",
     "parse_event",
+    "EntityResolver",
     "CLICallError",
     "CLIUnavailableError",
     "claude_cli_call",

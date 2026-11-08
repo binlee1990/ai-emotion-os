@@ -17,6 +17,16 @@ adapter = NLEventAdapter(llm_call=my_llm)        # Callable[[str], str]：prompt
 event = adapter.adapt("反派当众羞辱主角").event   # → Event，经引擎全管线
 ```
 
+跨事件实体规范化（v0.4）：LLM 对同一实体可能输出不同写法（`主管` vs `supervisor`），
+导致跨事件机制（解气的 charges 匹配）失联。挂 `EntityResolver` 双防线——
+prompt 注入已见实体名单（LLM 复用写法）+ parse 后别名/已见归一（兜底）：
+
+```python
+from emotion_os.adapters import EntityResolver, NLEventAdapter
+resolver = EntityResolver(aliases={"supervisor": "主管"})   # 领域别名表可选
+adapter = NLEventAdapter(llm_call=my_llm, resolver=resolver)
+```
+
 CLI 供应商包装（v0.3，真实端到端）：`claude_cli_call` / `codex_cli_call` 开箱注入——
 
 ```python
@@ -30,7 +40,7 @@ event = NLEventAdapter(llm_call=claude_cli_call).adapt("反派当众羞辱主角
 - 参数标定：倒U顶点 `FEAR_ENJOYMENT_PEAK=0.84` 由 Andersen 2020 OSF 开放数据拟合
   （Likert 7.55/9，换算假设 `fear_engine = fear_likert/9`；delta-method 95% CI [0.59, 1.09]；
   复现脚本 [scripts/fit_fear_enjoyment_peak.py](scripts/fit_fear_enjoyment_peak.py)）
-- 测试：`python -m pytest tests/ -q`（130 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
-- 任务状态：[.tasks/emotion-os-v0.3.task.md](.tasks/emotion-os-v0.3.task.md)（v0.1/v0.2 见同目录）
+- 测试：`python -m pytest tests/ -q`（145 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
+- 任务状态：[.tasks/emotion-os-v0.4.task.md](.tasks/emotion-os-v0.4.task.md)（v0.1–v0.3 见同目录）
 
 范围：结构化事件输入的研究原型；运行时配置与未决项见架构合同 §8。

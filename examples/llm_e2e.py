@@ -25,6 +25,8 @@ from emotion_os import AgentProfile, EmotionEngine
 from emotion_os.adapters import (
     CLICallError,
     CLIUnavailableError,
+    EntityResolver,
+    ParseOutcome,
     build_extraction_prompt,
     claude_cli_call,
     codex_cli_call,
@@ -46,23 +48,37 @@ PROVIDERS = [
 ]
 
 
-def extract_with_retry(narrative: str, llm_call, timeout: float, lines: list[str]):
-    """三步编排（prompt→CLI→parse），失败带原始返回留证并自纠错重试一次。"""
+def extract_with_retry(narrative: str, llm_call, timeout: float, lines: list[str],
+                       resolver: EntityResolver | None = None):
+    """三步编排（prompt→CLI→parse→归一），失败带原始返回留证并自纠错重试一次。"""
     from emotion_os.adapters import EventParseError
 
-    prompt = build_extraction_prompt(narrative)
+    def build_prompt() -> str:
+        p = build_extraction_prompt(narrative)
+        if resolver is not None:
+            hint = resolver.roster_hint()
+            if hint:
+                p = f"{p}\n\n{hint}"
+        return p
+
+    prompt = build_prompt()
     last_raw = ""
     for attempt in (1, 2):
         try:
             raw = llm_call(prompt, timeout=timeout)
             last_raw = raw
-            return raw, parse_event(raw)
+            outcome = parse_event(raw)
+            if resolver is not None:
+                outcome = ParseOutcome(
+                    event=resolver.resolve_event(outcome.event), warnings=outcome.warnings
+                )
+            return raw, outcome
         except EventParseError as exc:
             lines.append(f"- 尝试{attempt} 解析失败：{exc}；原始返回（前 400 字）：\n  ```\n  {last_raw[:400]}\n  ```")
             if attempt == 2:
                 raise
             prompt = (
-                f"{build_extraction_prompt(narrative)}\n\n"
+                f"{build_prompt()}\n\n"
                 f"你上次的返回不符合契约（{exc}）。只输出符合契约的 JSON 对象，"
                 "category 必须是给定的枚举值之一，不要输出 error 字段或任何解释。"
             )
@@ -71,11 +87,13 @@ def extract_with_retry(narrative: str, llm_call, timeout: float, lines: list[str
 
 def run_provider(name: str, label: str, llm_call, timeout: float, lines: list[str]) -> bool:
     engine = EmotionEngine(AgentProfile.neurotic_example())
+    # v0.4 跨事件实体规范化：prompt 注入已见实体（主防线）+ parse 后别名/已见归一（兜底）
+    resolver = EntityResolver(aliases={"supervisor": "主管"})
     lines.append(f"\n## {label}\n")
     for idx, narrative in enumerate(NARRATIVE_EVENTS, 1):
         t0 = time.perf_counter()
         try:
-            raw, outcome = extract_with_retry(narrative, llm_call, timeout, lines)
+            raw, outcome = extract_with_retry(narrative, llm_call, timeout, lines, resolver)
         except CLIUnavailableError as exc:
             if idx == 1:
                 lines.append(f"- SKIP：{type(exc).__name__}: {exc}")
@@ -95,6 +113,8 @@ def run_provider(name: str, label: str, llm_call, timeout: float, lines: list[st
             lines.append(f"  - justice_restored={ev.justice_restored:.2f} target=`{ev.justice_target}`")
         if outcome.warnings:
             lines.append(f"- 解析警告：{outcome.warnings}")
+        if resolver.renames:
+            lines.append(f"- 实体归一（v0.4）：{resolver.renames}")
 
         result = engine.process(ev, dt_minutes=3.0)
         top = sorted(result.episodes, key=lambda e: -e.intensity)[:4]
