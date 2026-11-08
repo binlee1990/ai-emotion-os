@@ -49,12 +49,14 @@ PROVIDERS = [
 
 
 def extract_with_retry(narrative: str, llm_call, timeout: float, lines: list[str],
-                       resolver: EntityResolver | None = None):
-    """三步编排（prompt→CLI→parse→归一），失败带原始返回留证并自纠错重试一次。"""
+                       resolver: EntityResolver | None = None,
+                       goal_ids: list[str] | None = None,
+                       goal_aliases: dict[str, str] | None = None):
+    """三步编排（prompt→CLI→parse→归一/映射），失败带原始返回留证并自纠错重试一次。"""
     from emotion_os.adapters import EventParseError
 
     def build_prompt() -> str:
-        p = build_extraction_prompt(narrative)
+        p = build_extraction_prompt(narrative, goal_ids=goal_ids)
         if resolver is not None:
             hint = resolver.roster_hint()
             if hint:
@@ -68,11 +70,14 @@ def extract_with_retry(narrative: str, llm_call, timeout: float, lines: list[str
             raw = llm_call(prompt, timeout=timeout)
             last_raw = raw
             outcome = parse_event(raw)
+            warnings = list(outcome.warnings)
+            event = outcome.event
             if resolver is not None:
-                outcome = ParseOutcome(
-                    event=resolver.resolve_event(outcome.event), warnings=outcome.warnings
-                )
-            return raw, outcome
+                event = resolver.resolve_event(event)
+            if goal_ids is not None or goal_aliases:
+                from emotion_os.adapters.nl_event import map_goal_impacts
+                event = map_goal_impacts(event, goal_ids, goal_aliases or {}, warnings)
+            return raw, ParseOutcome(event=event, warnings=warnings)
         except EventParseError as exc:
             lines.append(f"- 尝试{attempt} 解析失败：{exc}；原始返回（前 400 字）：\n  ```\n  {last_raw[:400]}\n  ```")
             if attempt == 2:
@@ -86,14 +91,22 @@ def extract_with_retry(narrative: str, llm_call, timeout: float, lines: list[str
 
 
 def run_provider(name: str, label: str, llm_call, timeout: float, lines: list[str]) -> bool:
-    engine = EmotionEngine(AgentProfile.neurotic_example())
+    agent = AgentProfile.neurotic_example()
+    engine = EmotionEngine(agent)
     # v0.4 跨事件实体规范化：prompt 注入已见实体（主防线）+ parse 后别名/已见归一（兜底）
     resolver = EntityResolver(aliases={"supervisor": "主管"})
+    # v0.5 goal id 契约化：prompt 注入主体目标词表 + 自由格式键别名映射
+    goal_ids = list(agent.goals.keys())
+    goal_aliases = {
+        "方案获认可与署名": "esteem", "作品署名获得认可": "esteem", "职业声誉": "esteem",
+        "原版方案署名获认可": "esteem", "safety": "safety", "esteem": "esteem",
+    }
     lines.append(f"\n## {label}\n")
     for idx, narrative in enumerate(NARRATIVE_EVENTS, 1):
         t0 = time.perf_counter()
         try:
-            raw, outcome = extract_with_retry(narrative, llm_call, timeout, lines, resolver)
+            raw, outcome = extract_with_retry(
+                narrative, llm_call, timeout, lines, resolver, goal_ids, goal_aliases)
         except CLIUnavailableError as exc:
             if idx == 1:
                 lines.append(f"- SKIP：{type(exc).__name__}: {exc}")
@@ -115,6 +128,8 @@ def run_provider(name: str, label: str, llm_call, timeout: float, lines: list[st
             lines.append(f"- 解析警告：{outcome.warnings}")
         if resolver.renames:
             lines.append(f"- 实体归一（v0.4）：{resolver.renames}")
+        if ev.goal_impacts:
+            lines.append(f"- goal_impacts（v0.5 契约化后）：{ev.goal_impacts}")
 
         result = engine.process(ev, dt_minutes=3.0)
         top = sorted(result.episodes, key=lambda e: -e.intensity)[:4]

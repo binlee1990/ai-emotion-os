@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from dataclasses import dataclass, field, replace
+from typing import Any, Callable, Sequence
 
 from ..core.event import AestheticInfo, BondInfo, Event, MoralInfo, SocialInfo
 from ..core.types import EventCategory, Intent, TimeOrientation
@@ -49,13 +49,16 @@ EVENT_JSON_CONTRACT = """{
 }"""
 
 
-def build_extraction_prompt(narrative_text: str) -> str:
+def build_extraction_prompt(narrative_text: str, goal_ids: "Sequence[str] | None" = None) -> str:
     system = (
         "你是情绪事件抽取器。把叙事文本中发生的一个事件转成 JSON（只输出 JSON，不要解释）。"
         "规则：①事件类别必选且只能从给定枚举选；②数值严格遵守字段范围；"
         "③goal_impacts 只填与叙事主体目标明确相关的条目；④没有依据的字段省略，不要编造。"
         f"\nJSON 契约：\n{EVENT_JSON_CONTRACT}"
     )
+    if goal_ids:
+        ids = "、".join(goal_ids)
+        system += f"\ngoal_impacts 的键只能从主体目标词表中选：{ids}"
     return f"{system}\n\n叙事文本：\n{narrative_text}"
 
 
@@ -145,6 +148,14 @@ def parse_event(payload: dict[str, Any] | str) -> ParseOutcome:
                 raise EventParseError(f"非法 JSON: {exc}") from exc
     if not isinstance(payload, dict):
         raise EventParseError(f"payload 须为 JSON 对象，得到 {type(payload).__name__}")
+
+    # null 宽容（v0.5，真实 CLI 输出实证）：LLM 常用 null 表达「无值/省略」
+    # （codex 实测 "novelty":null）——视为省略而非错误；嵌套对象清一层 null 键。
+    payload = {
+        k: ({ik: iv for ik, iv in v.items() if iv is not None}
+            if isinstance(v, dict) else v)
+        for k, v in payload.items() if v is not None
+    }
 
     for key in payload:
         if key not in _KNOWN_TOP:
@@ -238,26 +249,79 @@ def parse_event(payload: dict[str, Any] | str) -> ParseOutcome:
     return ParseOutcome(event=Event(**kwargs), warnings=warnings)
 
 
+def _norm_key(s: str) -> str:
+    return s.strip().casefold().replace(" ", "")
+
+
+def map_goal_impacts(
+    event: Event,
+    goal_ids: Sequence[str] | None,
+    goal_aliases: dict[str, str],
+    warnings: list[str],
+) -> Event:
+    """goal id 契约化（v0.5）：别名映射 → 命中词表时改写为词表原键（引擎是字面
+    goals.get 匹配，`Esteem` 不改写会静默零相关）→ 表外键 warning 可见化 →
+    同键合并（同号取绝对值更大者、0 视为无信息、异号叠加）。
+
+    库与 e2e 共用本函数（单一实现，避免语义漂移）。
+    """
+    goal_norm = {g.strip().casefold().replace(" ", ""): g for g in (goal_ids or [])}
+    alias_norm = {_norm_key(k): v for k, v in (goal_aliases or {}).items()}
+    if not event.goal_impacts or (not goal_norm and not alias_norm):
+        return event
+    mapped: dict[str, float] = {}
+    for key, val in event.goal_impacts.items():
+        nk = alias_norm.get(_norm_key(key), key)
+        if goal_norm:
+            hit = goal_norm.get(_norm_key(nk))
+            if hit is None:
+                warnings.append(
+                    f"goal id {nk!r} 不在主体目标词表 {sorted(goal_norm.values())} 内，"
+                    "该条目将零相关（R-INT-01）——考虑扩充 goal_aliases 或 goal_ids"
+                )
+            else:
+                nk = hit   # canonicalize：改写为词表原键（引擎字面匹配才命中）
+        if nk in mapped:
+            old = mapped[nk]
+            if val == 0 or old == 0:      # 0 无信息，保留非零侧
+                mapped[nk] = old if val == 0 else val
+            elif val * old >= 0:          # 同号取绝对值更大者
+                mapped[nk] = max(old, val) if val > 0 else min(old, val)
+            else:                          # 异号叠加（和必在两值之间，无需截断）
+                mapped[nk] = old + val
+        else:
+            mapped[nk] = val
+    return replace(event, goal_impacts=mapped)
+
+
 @dataclass
 class NLEventAdapter:
     """把叙事文本变成 Event：prompt 契约 → 注入的 LLM 调用 → 解析校验。
 
     resolver（v0.4，可选）：跨事件实体规范化——adapt 时把已见实体名单注入
     prompt（LLM 复用写法，主防线），parse 后对实体字段做别名/已见归一（兜底）。
+
+    goal_ids / goal_aliases（v0.5，可选）：goal id 契约化——adapt 时把主体目标
+    词表注入 prompt（LLM 用合法键，主防线）；parse 后 goal_impacts 键经
+    map_goal_impacts 映射/改写/警告（兜底）。
     """
 
     llm_call: Callable[[str], str]     # provider 无关：prompt 进，JSON 出
     resolver: EntityResolver | None = None
+    goal_ids: Sequence[str] | None = None
+    goal_aliases: dict[str, str] = field(default_factory=dict)   # 自由格式键 → 合法 goal id
 
     def adapt(self, narrative_text: str) -> ParseOutcome:
-        prompt = build_extraction_prompt(narrative_text)
+        prompt = build_extraction_prompt(narrative_text, goal_ids=self.goal_ids)
         if self.resolver is not None:
             hint = self.resolver.roster_hint()
             if hint:
                 prompt = f"{prompt}\n\n{hint}"
         raw = self.llm_call(prompt)
         outcome = parse_event(raw)
+        warnings = list(outcome.warnings)
+        event = outcome.event
         if self.resolver is not None:
-            resolved = self.resolver.resolve_event(outcome.event)
-            return ParseOutcome(event=resolved, warnings=outcome.warnings)
-        return outcome
+            event = self.resolver.resolve_event(event)
+        event = map_goal_impacts(event, self.goal_ids, self.goal_aliases, warnings)
+        return ParseOutcome(event=event, warnings=warnings)

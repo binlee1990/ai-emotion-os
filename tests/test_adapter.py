@@ -124,6 +124,16 @@ class TestParse:
         out = parse_event(f"好的，以下是转换结果：\n{body}")
         assert out.event.category is not None
 
+    def test_null_values_treated_as_omitted(self):
+        """v0.5：LLM 用 null 表达省略（codex 实测 "novelty":null）——视为省略而非报错。"""
+        payload = {**FACESLAP_JSON, "novelty": None, "urgency": None,
+                   "moral": {**FACESLAP_JSON.get("moral", {"severity": 0.9}), "severity": None}}
+        out = parse_event(json.dumps(payload, ensure_ascii=False))
+        assert out.event.novelty == 0.0        # Event 默认值（省略语义）
+        assert out.event.urgency == 0.0
+        assert out.event.moral.severity == 0.5  # moral 默认值
+        assert not out.warnings or all("非数值" not in w for w in out.warnings)
+
 
 class TestPrompt:
     def test_prompt_contains_contract_and_text(self):

@@ -27,6 +27,15 @@ resolver = EntityResolver(aliases={"supervisor": "主管"})   # 领域别名表�
 adapter = NLEventAdapter(llm_call=my_llm, resolver=resolver)
 ```
 
+goal id 契约化（v0.5）：LLM 抽取自由格式 goal id（如「方案获认可与署名」）会与
+profile 目标词表失联而静默零效应。注入词表让 LLM 用合法键 + 别名映射兜底 +
+表外键 warning 可见化：
+
+```python
+adapter = NLEventAdapter(llm_call=my_llm, goal_ids=list(agent.goals),
+                         goal_aliases={"方案获认可与署名": "esteem"})
+```
+
 CLI 供应商包装（v0.3，真实端到端）：`claude_cli_call` / `codex_cli_call` 开箱注入——
 
 ```python
@@ -40,7 +49,7 @@ event = NLEventAdapter(llm_call=claude_cli_call).adapt("反派当众羞辱主角
 - 参数标定：倒U顶点 `FEAR_ENJOYMENT_PEAK=0.84` 由 Andersen 2020 OSF 开放数据拟合
   （Likert 7.55/9，换算假设 `fear_engine = fear_likert/9`；delta-method 95% CI [0.59, 1.09]；
   复现脚本 [scripts/fit_fear_enjoyment_peak.py](scripts/fit_fear_enjoyment_peak.py)）
-- 测试：`python -m pytest tests/ -q`（145 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
+- 测试：`python -m pytest tests/ -q`（155 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
 - 任务状态：[.tasks/emotion-os-v0.4.task.md](.tasks/emotion-os-v0.4.task.md)（v0.1–v0.3 见同目录）
 
 范围：结构化事件输入的研究原型；运行时配置与未决项见架构合同 §8。

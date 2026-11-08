@@ -433,3 +433,188 @@
   - moral: severity=0.70 violator=`主管`
 - 引擎输出：nostalgia(0.61)、surprise(0.59)、relaxation(0.52)、pleasure(0.48)
 - 中文表达：大吃一惊
+
+
+# LLM 端到端运行 2026-11-09 01:09:57
+
+- 叙事：2 个事件；agent=neurotic_example；dt=3min
+
+## claude CLI · glm-5.3-flash[1M]（--model sonnet，GLM 网关）
+
+### 事件1（84.0s）
+- 叙事：办公室里，主管当众把小林熬夜两周做出的方案贬低为「实习生水平」，还把署名改成了自己，周围同事跟着哄笑。
+- CLI 原始返回：
+  ```json
+  ```json
+{
+  "category": "E_violation",
+  "description": "主管当众把小林熬夜两周做出的方案贬低为「实习生水平」，并把署名改成自己，同事跟着哄笑",
+  "affects": "self",
+  "caused_by": "supervisor",
+  "intent": "deliberate",
+  "goal_impacts": {"esteem": -0.9},
+  "pleasantness": -0.9,
+  "expectancy_violation": 0.6,
+  "urgency": 0.6,
+  "reversibility": 0.3,
+  "moral": {"severity": 0.8, "victim": "self", "violator": "supervisor", "virtue": false},
+  "social": {"direction": "up", "deservedness": 0.0, "domain": "status"},
+  "justice_restored": 0.0,
+  "effort": 0.9,
+  "time_orientation": "past"
+}
+```
+  ```
+- 抽取：category=`E_violation` intent=`deliberate` novelty=0.00 pleasantness=-0.90
+  - moral: severity=0.80 violator=`主管`
+- 实体归一（v0.4）：[('supervisor', '主管'), ('supervisor', '主管')]
+- goal_impacts（v0.5 契约化后）：{'esteem': -0.9}
+- 引擎输出：frustration(1.00)、indignation(1.00)、wei_yuan(1.00)、bie_qu(1.00)
+- 中文表达：处处碰壁与义愤填膺交织
+- 失败：CLICallError: claude CLI 超时（>240s）
+
+## codex CLI · gpt-6-luna · effort=low（headless read-only）
+
+### 事件1（20.4s）
+- 叙事：办公室里，主管当众把小林熬夜两周做出的方案贬低为「实习生水平」，还把署名改成了自己，周围同事跟着哄笑。
+- CLI 原始返回：
+  ```json
+  {"category":"E_violation","description":"主管当众贬低小林熬夜两周完成的方案并改为自己的署名，同事跟着哄笑。","affects":"小林","caused_by":"主管","intent":"deliberate","goal_impacts":{"esteem":-1},"pleasantness":-1,"expectancy_violation":0.8,"urgency":0.5,"reversibility":0.5,"moral":{"severity":0.8,"victim":"小林","violator":"主管","virtue":false},"time_orientation":"past"}
+  ```
+- 抽取：category=`E_violation` intent=`deliberate` novelty=0.00 pleasantness=-1.00
+  - moral: severity=0.80 violator=`主管`
+- goal_impacts（v0.5 契约化后）：{'esteem': -1.0}
+- 引擎输出：frustration(1.00)、indignation(1.00)、bie_qu(1.00)、moral_disgust(1.00)
+- 中文表达：处处碰壁与义愤填膺交织
+### 事件2（19.4s）
+- 叙事：第二天客户视频会上，客户当场点名只要小林署名的原版方案，并质问主管为什么隐瞒真实作者，主管当众语塞道歉。
+- CLI 原始返回：
+  ```json
+  {"category":"E_violation","description":"客户在视频会上质问主管隐瞒原版方案的真实作者，主管当众语塞道歉。","affects":"主管","caused_by":"客户","intent":"unknown","goal_impacts":{"esteem":-0.5},"moral":{"severity":0.5,"victim":"小林","violator":"主管","virtue":false},"time_orientation":"past"}
+  ```
+- 抽取：category=`E_violation` intent=`unknown` novelty=0.00 pleasantness=+0.00
+  - moral: severity=0.50 violator=`主管`
+- goal_impacts（v0.5 契约化后）：{'esteem': -0.5}
+- 引擎输出：indignation(0.76)、moral_disgust(0.58)、frustration(0.49)、bie_qu(0.46)
+- 中文表达：处处碰壁与义愤填膺交织
+
+
+# LLM 端到端运行 2026-11-09 01:16:14
+
+- 叙事：2 个事件；agent=neurotic_example；dt=3min
+
+## claude CLI · glm-5.3-flash[1M]（--model sonnet，GLM 网关）
+
+### 事件1（87.2s）
+- 叙事：办公室里，主管当众把小林熬夜两周做出的方案贬低为「实习生水平」，还把署名改成了自己，周围同事跟着哄笑。
+- CLI 原始返回：
+  ```json
+  ```json
+{
+  "category": "E_violation",
+  "description": "主管当众把小林熬夜两周做出的方案贬低为「实习生水平」并把署名改成自己",
+  "affects": "self",
+  "caused_by": "主管",
+  "intent": "deliberate",
+  "goal_impacts": {"esteem": -1},
+  "novelty": 0.3,
+  "pleasantness": -0.9,
+  "expectancy_violation": 0.8,
+  "probability": 1.0,
+  "urgency": 0.5,
+  "reversibility": 0.4,
+  "control_hint": 0.2,
+  "moral": {"severity": 0.9, "victim": "self", "violator": "主管", "virtue": false},
+  "social": {"direction": "down", "deservedness": 0.0, "domain": "status"},
+  "justice_restored": 0.0,
+  "effort": 0.9,
+  "time_orientation": "past"
+}
+```
+  ```
+- 抽取：category=`E_violation` intent=`deliberate` novelty=0.30 pleasantness=-0.90
+  - moral: severity=0.90 violator=`主管`
+- goal_impacts（v0.5 契约化后）：{'esteem': -1.0}
+- 引擎输出：frustration(1.00)、indignation(1.00)、wei_yuan(1.00)、bie_qu(1.00)
+- 中文表达：处处碰壁与义愤填膺交织
+### 事件2（77.7s）
+- 叙事：第二天客户视频会上，客户当场点名只要小林署名的原版方案，并质问主管为什么隐瞒真实作者，主管当众语塞道歉。
+- CLI 原始返回：
+  ```json
+  ```json
+{
+  "category": "G_comparison",
+  "description": "客户视频会上当场点名只要小林署名的原版方案，质问主管隐瞒真实作者，主管当众语塞道歉",
+  "affects": "self",
+  "caused_by": "客户",
+  "intent": "deliberate",
+  "goal_impacts": {"esteem": 0.8},
+  "novelty": 0.4,
+  "pleasantness": 0.8,
+  "expectancy_violation": 0.5,
+  "moral": {"severity": 0.6, "victim": "小林", "violator": "主管", "virtue": false},
+  "social": {"direction": "up", "deservedness": 0.9, "domain": "status"},
+  "justice_restored": 0.8,
+  "justice_target": "主管",
+  "prior_adversity_resolved": true,
+  "time_orientation": "present"
+}
+```
+  ```
+- 抽取：category=`G_comparison` intent=`deliberate` novelty=0.40 pleasantness=+0.80
+  - moral: severity=0.60 violator=`主管`
+  - justice_restored=0.80 target=`主管`
+- goal_impacts（v0.5 契约化后）：{'esteem': 0.8}
+- 引擎输出：shuang(1.00)、jie_qi(0.93)、indignation(0.71)、pleasure(0.58)
+- 中文表达：义愤填膺与极度憋屈交织
+
+## codex CLI · gpt-6-luna · effort=low（headless read-only）
+
+- 尝试1 解析失败：字段 novelty 非数值: None；原始返回（前 400 字）：
+  ```
+  {"category":"E_violation","description":"主管当众贬低小林熬夜两周做出的方案并将署名改成自己，同事跟着哄笑。","affects":"小林","caused_by":"主管","intent":"deliberate","goal_impacts":{"esteem":-1},"novelty":null,"pleasantness":-1,"expectancy_violation":null,"probability":null,"urgency":null,"reversibility":null,"control_hint":null,"moral":{"severity":0.8,"victim":"小林","violator":"主管","virtue":false},"social":{"direction":"down","deser
+  ```
+### 事件1（42.4s）
+- 叙事：办公室里，主管当众把小林熬夜两周做出的方案贬低为「实习生水平」，还把署名改成了自己，周围同事跟着哄笑。
+- CLI 原始返回：
+  ```json
+  {
+  "category": "E_violation",
+  "description": "主管当众贬低小林熬夜两周完成的方案并将署名改为自己，同事跟着哄笑。",
+  "affects": "小林",
+  "caused_by": "主管",
+  "intent": "deliberate",
+  "goal_impacts": {
+    "esteem": -1
+  },
+  "pleasantness": -1,
+  "moral": {
+    "severity": 0.8,
+    "victim": "小林",
+    "violator": "主管",
+    "virtue": false
+  },
+  "social": {
+    "direction": "down",
+    "deservedness": 0,
+    "domain": "status"
+  },
+  "effort": 1
+}
+  ```
+- 抽取：category=`E_violation` intent=`deliberate` novelty=0.00 pleasantness=-1.00
+  - moral: severity=0.80 violator=`主管`
+- goal_impacts（v0.5 契约化后）：{'esteem': -1.0}
+- 引擎输出：bie_qu(0.93)、indignation(0.92)、moral_disgust(0.92)、empathic_pain(0.81)
+- 中文表达：极度憋屈与义愤填膺交织
+### 事件2（19.7s）
+- 叙事：第二天客户视频会上，客户当场点名只要小林署名的原版方案，并质问主管为什么隐瞒真实作者，主管当众语塞道歉。
+- CLI 原始返回：
+  ```json
+  {"category":"E_violation","description":"客户在视频会上质问主管隐瞒方案的真实作者，主管当众语塞并道歉。","affects":"主管","caused_by":"客户","intent":"unknown","goal_impacts":{"esteem":-0.7},"pleasantness":-0.4,"moral":{"severity":0.5,"victim":"小林","violator":"主管","virtue":false},"time_orientation":"past"}
+  ```
+- 抽取：category=`E_violation` intent=`unknown` novelty=0.00 pleasantness=-0.40
+  - moral: severity=0.50 violator=`主管`
+- goal_impacts（v0.5 契约化后）：{'esteem': -0.7}
+- 引擎输出：indignation(0.76)、frustration(0.69)、bie_qu(0.65)、moral_disgust(0.58)
+- 中文表达：处处碰壁与义愤填膺交织
