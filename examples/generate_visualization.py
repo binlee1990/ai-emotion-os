@@ -153,8 +153,10 @@ def main() -> int:
             "v": c.valence, "a": c.arousal, "d": c.dominance, "u": c.unpredictability,
             "tendency": c.tendency,
             "half_life": HALF_LIFE_BY_CATEGORY.get(c.id, FAMILY_HALF_LIFE_MIN.get(c.family)),
-            "ladder": len(_LADDERS.get(c.id, [])),
-            "registers": sorted({reg for (cid, reg) in _REGISTER_LADDERS if cid == c.id}),
+            "ladder": [[th, w] for th, w in _LADDERS.get(c.id, [])],
+            "reg_ladders": {
+                reg: ladder for (cid, reg), ladder in _REGISTER_LADDERS.items() if cid == c.id
+            },
         }
         categories.append(item)
         families.setdefault(c.family, []).append(c.zh)
@@ -206,6 +208,125 @@ def main() -> int:
         (fam, FAMILY_HALF_LIFE_MIN[fam]) for fam in FAMILY_HALF_LIFE_MIN
     ]
 
+    # ---- 8) 参数扫描矩阵（模拟器数据：引擎真算，前端查表）----
+    # 6 类代表事件 × 主目标冲击 7 档 × 故意性 3 档 × 控制感 3 档 = 378 组
+    from emotion_os.core.event import MoralInfo
+    SIM_TYPES = [
+        ("E_violation", EventCategory.VIOLATION, "esteem", "被冒犯", True),
+        ("D_achievement", EventCategory.ACHIEVEMENT, "esteem", "有成就", False),
+        ("B_threat", EventCategory.THREAT, "safety", "遇威胁", False),
+        ("F_bond", EventCategory.BOND, "bond", "关系变动", False),
+        ("A_loss", EventCategory.LOSS, "bond", "失去", False),
+        ("G_comparison", EventCategory.COMPARISON, "esteem", "与人比较", False),
+    ]
+    IMPACTS = [-1.0, -0.6, -0.2, 0.2, 0.6, 1.0, 0.0]
+    INTENTS = [Intent.DELIBERATE, Intent.ACCIDENTAL, Intent.UNKNOWN]
+    CONTROLS = [0.2, 0.5, 0.8]
+    sim_matrix = {}
+    for tid, cat, goal, label, with_moral in SIM_TYPES:
+        rows = []
+        for imp in IMPACTS:
+            for it in INTENTS:
+                for ctl in CONTROLS:
+                    e = EmotionEngine(AgentProfile.reader_example())
+                    kw = dict(
+                        category=cat, description=label, affects="self", caused_by="对方",
+                        intent=it, goal_impacts={goal: imp}, probability=0.9,
+                        urgency=0.6, novelty=0.4, control_hint=ctl,
+                    )
+                    if with_moral and imp < 0:
+                        kw["moral"] = MoralInfo(severity=min(1.0, -imp), victim="self",
+                                                violator="对方", virtue=False)
+                    r = e.process(Event(**kw), dt_minutes=1.0)
+                    top = [
+                        {"zh": CATALOG[ep.category].zh, "word": "", "intensity": round(ep.intensity, 2),
+                         "cat": ep.category}
+                        for ep in sorted(r.episodes, key=lambda x: -x.intensity)[:5]
+                        if ep.intensity > 0.05
+                    ]
+                    for t in top:
+                        t["word"] = t["zh"]
+                    d = r.expression.dims
+                    rows.append({
+                        "imp": imp, "intent": it.value, "ctl": ctl,
+                        "top": top, "v": round(d.valence, 2), "a": round(d.arousal, 2),
+                        "say": r.expression.summary,
+                    })
+        sim_matrix[tid] = {"label": label, "goal": goal, "rows": rows}
+
+    # ---- 9) 峰终变体（BE/中性/HE 三结局）----
+    endings = []
+    for tag, pleasant, reversibility, note in [
+        ("BE 惨烈", -0.9, 0.0, "挚爱角色牺牲，无可挽回"),
+        ("中性留白", 0.0, 0.5, "开放式结局"),
+        ("HE 圆满", 0.8, 1.0, "失散亲人重逢相拥"),
+    ]:
+        eng2 = EmotionEngine(AgentProfile.reader_example())
+        for title, dt, ev in STORY[:-1]:
+            eng2.process(ev, dt_minutes=dt)
+        end_ev = STORY[-1][2]
+        from dataclasses import replace as _dc_replace
+        end_ev = _dc_replace(end_ev, pleasantness=pleasant, reversibility=reversibility,
+                             goal_impacts={"bond": pleasant}, description=note)
+        r2 = eng2.process(end_ev, dt_minutes=180.0)
+        endings.append({
+            "tag": tag, "note": note,
+            "memory": round(eng2.state.memory.remembered_valence, 2),
+            "peak": round(eng2.state.memory.peak_valence, 2),
+            "end_v": round(eng2.state.memory.end_valence, 2),
+            "say": r2.expression.summary,
+        })
+
+    # ---- 10) 机制图鉴卡片（内容性数据，出处为真）----
+    mechs = [
+        {"t": "恐惧享受倒 U", "one": "安全框架内，享受随恐惧先升后降，峰值在「不能忍受的下一档」",
+         "pts": ["身体发出负信号 + 认知确认安全 = 享受", "顶点 0.84 由 Andersen 2020 鬼屋研究 OSF 开放数据拟合",
+                 "安全框架破损失（真危险）→ 享受归零、纯恐惧"],
+         "src": "Rozin et al. 2013；Andersen et al. 2020（OSF 复现）"},
+        {"t": "峰终定律", "one": "记忆评分 ≈ 峰值×0.5 + 结尾×0.5，过程时长不计",
+         "pts": ["BE/烂尾的意难平由「高峰+负终值」结构解释", "时长加权会稀释终值 → 意难平不可复现",
+                 "等权为模型惯例，精确相对权重文献未报告"],
+         "src": "Kahneman et al. 1993；Redelmeier et al. 2003"},
+        {"t": "兴奋转移", "one": "未消退的唤醒残余转移到后续情绪并放大强度",
+         "pts": ["绝杀 = fiero × 兴奋转移：先悬念后胜利的情绪强于直接胜利",
+                 "残余窗半衰期 10 分钟：久远的前置事件不再放大", "争吵后立刻收到好消息，喜悦被残余唤醒放大"],
+         "src": "Zillmann 1971；v0.3 时序修复后残余窗真正生效"},
+        {"t": "wanting ≠ liking", "one": "「想要」与「喜欢」是两个独立系统",
+         "pts": ["解释刷短视频停不下来却并不快乐", "引擎分两个池：wanting 慢衰减（30min）、liking 快衰减（12min）",
+                 "「上头」= wanting 池显著超过 liking 池"],
+         "src": "Berridge；双池半衰期为自设（无文献常数）"},
+        {"t": "损失厌恶", "one": "同幅度损失的情绪强度 > 同幅度收益，约 2:1",
+         "pts": ["丢 100 元的痛 ≈ 得 200 元的快乐", "BE 结局损失侧被 λ=2.0 放大",
+                 "λ 实证区间 1.3–2.25，代码取 2.0（从 Brown 2024）"],
+         "src": "Tversky & Kahneman 1992；Walasek 2024；Brown 2024"},
+        {"t": "kama muta 骤增触发", "one": "共享关系突然增强引发「被感动」",
+         "pts": ["失散重逢、告白被接受 → 鼻头一酸/泪目", "渐进增强只产生温情，不触发感动",
+                 "半衰期 1.5 分钟——感动是爆发式的"],
+         "src": "Zickfeld et al. 2018（19 国证据）"},
+    ]
+
+    # ---- 11) LLM 端到端（流程 + 真实日志摘录）----
+    llm_flow = [
+        {"step": "叙事文本", "eg": "「主管当众抢走了小林的方案署名…」"},
+        {"step": "CLI 抽取（claude/codex）", "eg": "结构化 JSON：category / goal_impacts / moral…"},
+        {"step": "适配器校验+归一", "eg": "范围截断、实体规范化、goal id 契约化"},
+        {"step": "引擎全管线", "eg": "评价 → 生成 → 动力学 → 表达"},
+        {"step": "中文输出", "eg": "「义愤填膺与满腹委屈交织」"},
+    ]
+    llm_log = ""
+    log_path = ROOT / ".tasks" / "llm-e2e-log.md"
+    if log_path.exists():
+        text = log_path.read_text(encoding="utf-8")
+        # 取最新一节 claude 段的事件1输出（真实摘录）
+        seg = text.rfind("## claude CLI")
+        if seg > 0:
+            chunk = text[seg:seg + 2200]
+            for line in chunk.splitlines():
+                if line.startswith("- 引擎输出：") or line.startswith("- 中文表达："):
+                    llm_log += line + "\n"
+                if len(llm_log) > 300:
+                    break
+
     data = {
         "meta": {
             "version": "0.7.0", "categories": len(CATALOG), "tests": 163, "releases": 7,
@@ -227,6 +348,11 @@ def main() -> int:
         "registers": registers,
         "fear_enjoyment": fear_enjoyment,
         "pipeline": pipeline,
+        "sim_matrix": sim_matrix,
+        "endings": endings,
+        "mechs": mechs,
+        "llm_flow": llm_flow,
+        "llm_log": llm_log.strip(),
     }
 
     html = TEMPLATE.read_text(encoding="utf-8")
