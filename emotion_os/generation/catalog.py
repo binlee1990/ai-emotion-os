@@ -131,6 +131,13 @@ _CATALOG: list[Category] = [
     _c("regret", "后悔", "regret", PROSPECT, -0.5, 0.3, -0.4, 0.05, "反事实修正"),
     _c("accomplishment", "成就感", "accomplishment", PROSPECT, 0.7, 0.5, 0.6, 0.05, "巩固", liking=0.7),
     _c("fear_enjoyment", "怕并快乐着", "feared enjoyed (benign masochism)", PROSPECT, 0.55, 0.75, 0.2, 0.4, "再来一次", wanting=0.6, liking=0.7),
+    # v0.2 补全（复审 P2 + 调研 §5.3/§5.5/§6.2）
+    _c("comfort", "安慰", "downward-comparison comfort", JOY, 0.35, 0.25, 0.1, 0.0, "自我宽慰", liking=0.5),
+    _c("superiority", "优越感", "superiority", SOCIAL_MORAL, 0.3, 0.35, 0.55, 0.05, "自我抬升"),
+    _c("shang_tou", "上头", "absorbed craving (wanting-dominant)", EPISTEMIC, 0.35, 0.75, 0.1, 0.2, "停不下来", wanting=0.9, liking=0.2),
+    _c("naches", "欣慰(纳赫)", "naches (pride in protege's success)", SOCIAL_MORAL, 0.65, 0.4, 0.3, 0.05, "为后辈骄傲"),
+    _c("chills", "颤栗快感", "chills (peak hedonic response)", AESTHETIC, 0.75, 0.85, 0.0, 0.3, "", liking=0.9),
+    _c("collective_effervescence", "集体欢腾", "collective effervescence", SOCIAL_MORAL, 0.7, 0.7, 0.3, 0.1, "融入集体", liking=0.7),
 ]
 
 CATALOG: dict[str, Category] = {c.id: c for c in _CATALOG}

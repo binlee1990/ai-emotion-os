@@ -68,6 +68,17 @@ class TestThreeLayers:
         dyn.integrate([], state, -0.8, 0.4, event_importance=0.9, event_irreversibility=1.0)
         assert state.rumination > 0.25
 
+    def test_wanting_liking_pools_asymmetric_decay(self):
+        """v0.2：wanting 池衰减慢于 liking 池——「刷完空虚」的不对称基础（§1.5.1）。"""
+        dyn = AffectDynamics()
+        state = AffectState()
+        ep_w = EmotionEpisode("curiosity", 0.6, family="epistemic", wanting=0.5, liking=0.1)
+        ep_l = EmotionEpisode("joy", 0.6, family="joy", wanting=0.1, liking=0.5)
+        dyn.integrate([ep_w, ep_l], state, 0.2, 0.5, dt_minutes=0.0)
+        assert state.wanting_pool > 0.2 and state.liking_pool > 0.2
+        dyn.tick(state, 30.0)   # 30 分钟：wanting 半衰 30min，liking 半衰 12min
+        assert state.wanting_pool > state.liking_pool
+
 
 class TestPeakEnd:
     def test_peak_end_duration_neglect(self):

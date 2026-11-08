@@ -27,6 +27,10 @@ def _tent(x: float, peak: float) -> float:
     return max(0.0, 1.0 - (x - peak) / max(1.0 - peak, 1e-6))
 
 
+# 最适恐惧点：Andersen et al. 2020 (Psychological Science 31:1497-1510, doi:10.1177/0956797620972116)
+# 鬼屋研究确证享受-恐惧倒 U（地点层面二次项 β=-0.05, p=.014），但未发表享受峰值对应的恐惧绝对值
+#（原始数据 OSF: osf.io/43hzk 可拟合）；「最爱恰在不能忍受之下一档」出自 Rozin et al. 2013
+# (Judgment and Decision Making 8:439-447)——序数表述，无物理单位。0.30 为自设待标定值。
 FEAR_ENJOYMENT_PEAK = 0.30   # 最适恐惧点（激活尺度，待标定）
 
 
@@ -131,13 +135,27 @@ def _joy(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Act
         other_gain = pr > 0.1 or (e.social is not None and e.social.direction == "up")
         other_loss = max(0.0, -cond) > 0.1 or (e.social is not None and e.social.direction == "down")
         if other_gain:   # 对方得好
-            out["happy_for"] = max(gain, 0.6 * r.goal_relevance) * max(0.0, att)
-            out["resentment"] = max(gain, 0.6 * r.goal_relevance) * max(0.0, -att) * 0.8
+            gain_mag = max(gain, 0.6 * r.goal_relevance)
+            out["happy_for"] = gain_mag * max(0.0, att)
+            out["resentment"] = gain_mag * max(0.0, -att) * 0.8
+            if r.self_caused:
+                out["naches"] = gain_mag * max(0.0, att)   # 我助之人成功→欣慰（Lazzaro people fun，§5.3）
         if other_loss:   # 对方失势
             out["gloating"] = r.goal_relevance * max(0.0, -att)
             # 应得感预测（§3.3）+ 先前恶意羡慕加成（van de Ven 2015 跨事件链，R-APP-03）
             charge = s.charges.get(r.affects, 0.0)
             out["schadenfreude"] = out["gloating"] * (0.4 + 0.6 * des) * (1.0 + 0.8 * charge)
+            # 下行比较：优越（§6.2）；亲近者失势不优越
+            out["superiority"] = 0.45 * r.goal_relevance * (0.3 + 0.7 * des) * _b01(0.4 - att)
+            # 喜欢/中性的对方失势：同情为主；对方不应得时更强
+            if att >= 0:
+                out["sympathy"] = max(
+                    out.get("sympathy", 0.0),
+                    0.7 * r.goal_relevance * (1.0 - des) * (0.3 + 0.7 * max(0.0, att)),
+                )
+                # 自身情绪低落时的自利性安慰（下行比较的应对功能）
+                if s.mood.valence < -0.1:
+                    out["comfort"] = 0.5 * r.goal_relevance * max(0.0, -s.mood.valence)
 
 
 def _self_conscious(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
@@ -202,6 +220,9 @@ def _love(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Ac
     # 磕到了：目睹（虚构）关系升温（kama muta 粉丝文化变体，§3.3）
     if r.affects not in ("self", a.agent_id):
         out["ke_dao"] = _b01(rel * d * sudden * 1.2)
+    # 集体欢腾：与群体同步的联结（涂尔干；调研 §5.8 宗教/仪式、§6.2 集体同步行）
+    if r.affects.startswith("group:") and e.bond.sudden:
+        out["collective_effervescence"] = _b01(rel * d * 1.2)
 
 
 def _epistemic(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
@@ -224,7 +245,7 @@ def _epistemic(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, ou
 
 def _aesthetic(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
     if e.aesthetic is not None:
-        rel = max(r.goal_relevance, 0.35)        # 审美：内在愉悦度主导，相关性退居次要（§3.3）
+        rel = max(r.goal_relevance, 0.45)        # 审美：内在愉悦度主导，相关性退居次要（§3.3）
         out["beauty"] = _b01(rel * e.aesthetic.beauty)
         out["awe"] = _b01(rel * e.aesthetic.vastness * (0.7 + 0.3 * a.personality.openness) * (0.8 + 0.4 * r.novelty))
     if r.pleasantness > 0:
@@ -246,7 +267,9 @@ def _prospect(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out
         # 负向前景中的希望分量：悬念=恐惧+希望复合（§3.3、§2.5 B）——渴望更好结果
         out["hope"] = max(out.get("hope", 0.0), _b01(rel * (-cond) * (1.0 - prob) * 0.8))
     if e.prior_threat_resolved:
-        out["relief"] = _b01(rel * (0.6 + 0.4 * r.expectancy_violation))
+        # 解脱强度 ∝ 先前威胁量（残余张力入式；§2.3、§4.3 兴奋转移）
+        prior_tension = s.activation("suspense") + s.activation("fear") + s.activation("anxiety")
+        out["relief"] = _b01(rel * (0.4 + 0.4 * r.expectancy_violation + 0.5 * min(1.0, prior_tension)))
     if e.time_orientation.value == "past" and r.self_caused and max(0.0, -cond) > 0.1 and e.reversibility > 0.3:
         out["regret"] = _b01(rel * max(0.0, -cond) * e.reversibility * 0.8)
     if pr > 0.1 and e.effort > 0.1:
@@ -276,16 +299,24 @@ def _composites(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, o
         m = out.get(src, 0.0)
         if m > 0.75:
             out["po_fang"] = max(out.get("po_fang", 0.0), _b01((m - 0.7) * 3.3))
-    # 恐惧享受：安全框架内的倒 U（R-APP-04）；框架破损→归零（0.3 为待标定悬崖阈值）
+    # 恐惧享受：安全框架内的倒 U（R-APP-04）；安全框架平滑过渡（0.2–0.8 线性坡，待标定）
     if out.get("fear", 0.0) > 0.05:
-        if r.safety_frame > 0.3:
-            out["fear_enjoyment"] = (
-                _tent(out["fear"], FEAR_ENJOYMENT_PEAK)
-                * r.safety_frame
-                * (0.6 + 0.4 * a.sensation_seeking)
-            )
-        else:
-            out["fear_enjoyment"] = 0.0
+        sf_ramp = _b01((r.safety_frame - 0.2) / 0.6)
+        out["fear_enjoyment"] = (
+            _tent(out["fear"], FEAR_ENJOYMENT_PEAK)
+            * sf_ramp
+            * (0.6 + 0.4 * a.sensation_seeking)
+        )
+    # 颤栗快感 chills：审美高峰 × 预期张力解决（§5.5：chills 常在预期解决处）
+    beauty_peak = max(out.get("beauty", 0.0), out.get("awe", 0.0))
+    prior_tension = s.activation("suspense") + s.activation("anticipation") + s.activation("fear")
+    if beauty_peak > 0.35 and prior_tension > 0.15:
+        out["chills"] = _b01(beauty_peak * (0.35 + 0.65 * min(1.0, prior_tension)))
+    # 上头：wanting 池显著压过 liking 池（wanting≠liking 的行为学标记，§1.5.1）
+    if s.wanting_pool > 0.2:
+        ratio = s.wanting_pool / (s.liking_pool + 0.2)
+        if ratio > 1.5:
+            out["shang_tou"] = _b01((ratio - 1.5) * 0.6)
     # 麻了：情绪过载后的钝化（调研 §3.3：习惯化或调节耗竭的表达）——
     # 负性心境 + 调节资源耗竭 + 高唤醒残余共同触发
     overload = (max(0.0, -s.mood.valence)) * s.regulation_depletion * (0.5 + 0.5 * s.arousal_residue)

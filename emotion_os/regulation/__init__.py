@@ -25,13 +25,18 @@ class Strategy:
     RESPONSE_SUPPRESSION = "response_suppression"
 
 
-def regulation_strength(agent: AgentProfile) -> float:
-    return min(1.0, agent.regulation_capacity * (0.7 + 0.6 * agent.emotion_granularity))
+def regulation_strength(agent: AgentProfile, state: AffectState | None = None) -> float:
+    """调节力=人格参数×粒度加成，再受当前调节资源耗竭折减（状态并入，复审 P2-1）。"""
+    f = min(1.0, agent.regulation_capacity * (0.7 + 0.6 * agent.emotion_granularity))
+    if state is not None and state.regulation_depletion > 0:
+        f *= 1.0 - 0.6 * min(1.0, state.regulation_depletion)
+    return f
 
 
-def reappraise(r: AppraisalResult, agent: AgentProfile, strategy: str) -> AppraisalResult:
+def reappraise(r: AppraisalResult, agent: AgentProfile, strategy: str,
+               state: AffectState | None = None) -> AppraisalResult:
     """生成前调节：返回修改后的评价向量（不改动输入）。"""
-    eff = regulation_strength(agent)
+    eff = regulation_strength(agent, state)
     if strategy == Strategy.COGNITIVE_REAPPRAISAL:
         return replace(
             r,
@@ -47,11 +52,12 @@ def reappraise(r: AppraisalResult, agent: AgentProfile, strategy: str) -> Apprai
     return r
 
 
-def reinterpret_intent(r: AppraisalResult, agent: AgentProfile) -> AppraisalResult:
+def reinterpret_intent(r: AppraisalResult, agent: AgentProfile,
+                       state: AffectState | None = None) -> AppraisalResult:
     """善意的重新归因：他人故意 → 意外（降愤怒的最有效重评之一）。"""
     from ..core.types import Intent
 
-    eff = regulation_strength(agent)
+    eff = regulation_strength(agent, state)
     if r.causality_intent == Intent.DELIBERATE and eff > 0.25:
         return replace(r, causality_intent=Intent.ACCIDENTAL)
     return r

@@ -1,0 +1,41 @@
+{
+  "title": "ai-emotion-os v0.2：能力补全+参数标定+NL适配器+四领域场景",
+  "goal": {
+    "label": "v0.2 四方向交付并保持全绿",
+    "exit": [
+      {"text": "python -m pytest tests/ -q 全量 0 失败，新增 ≥4 个场景文件（短剧/游戏/音乐/泛用）", "check": "test"},
+      {"text": "标定常数附文献出处（找不到的维持默认并注明）", "check": "file"},
+      {"text": "NL→Event 适配器 fixture 端到端贯通（JSON→Event→引擎→中文表达）", "check": "test"},
+      {"text": "fresh-context 复审无 P0", "check": "review"}
+    ]
+  },
+  "groups": [
+    {"id": "engine", "label": "引擎补全", "kind": "阶段", "exit": ["6 新类别+4 项能力补全有测试"]},
+    {"id": "calib", "label": "参数标定", "kind": "阶段", "exit": ["常数附出处"]},
+    {"id": "adapter", "label": "NL适配器", "kind": "阶段"},
+    {"id": "scenes", "label": "场景扩展", "kind": "阶段"},
+    {"id": "verify", "label": "验收", "kind": "阶段"}
+  ],
+  "nodes": [
+    {"id": "N1", "label": "能力补全+新类别", "group": "engine", "estimate": 3,
+     "exit": [{"text": "调节力含状态项；下行比较输出安慰/优越；wanting/liking 双池+上头；安全框架平滑过渡；+6 类别（comfort/superiority/shang_tou/naches/chills/collective_effervescence）；对应单元测试通过", "check": "test"}]},
+    {"id": "N2", "label": "参数标定", "group": "calib", "depends_on": ["N1"], "estimate": 2,
+     "exit": [{"text": "倒U拐点/习惯化速率/唤醒残余窗/λ/峰终权重：代码常数处附文献出处，找不到的注明", "check": "file"}]},
+    {"id": "N3", "label": "NL→Event 适配器", "group": "adapter", "estimate": 2,
+     "exit": [{"text": "adapters 模块：prompt 契约+parse_event 校验+LLMCallable 注入；fixture 端到端（打脸 JSON→引擎→解气）与错误用例测试通过", "check": "test"}]},
+    {"id": "N4", "label": "短剧循环场景", "group": "scenes", "depends_on": ["N1"], "estimate": 2,
+     "exit": [{"text": "压抑-反转-钩子全循环、重生确定性爽感、甜宠磕糖习惯化对照、追更残余放大 断言通过（§5.4）", "check": "test"}]},
+    {"id": "N5", "label": "游戏场景", "group": "scenes", "depends_on": ["N1"], "estimate": 2,
+     "exit": [{"text": "四钥匙（hard/easy/people/serious）+抽卡变率抗习惯化+近失效应+天梯比较 断言通过（§5.3）", "check": "test"}]},
+    {"id": "N6", "label": "音乐场景", "group": "scenes", "depends_on": ["N1"], "estimate": 1,
+     "exit": [{"text": "悲伤音乐悖论（怀旧>悲伤）+预期解决 chills+节奏活力 断言通过（§5.5）", "check": "test"}]},
+    {"id": "N7", "label": "泛用矩阵场景", "group": "scenes", "depends_on": ["N1"], "estimate": 1,
+     "exit": [{"text": "§6.2 剩余行：后悔/无聊/敬畏/集体欢腾/违范未罚vs受罚 断言通过", "check": "test"}]},
+    {"id": "N8", "label": "全量回归+门复核", "group": "verify", "depends_on": ["N2", "N3", "N4", "N5", "N6", "N7"], "estimate": 1,
+     "exit": [{"text": "python -m pytest tests/ -q 全量 0 失败", "check": "test"},
+              {"text": "G3/G4 在更新后文档上重跑退出码 0", "check": "command"}]},
+    {"id": "N9", "label": "独立复审", "group": "verify", "depends_on": ["N8"], "estimate": 2,
+     "exec": {"mode": "main", "reviewer": "fresh"},
+     "exit": [{"text": "fresh 复审结论无 P0", "check": "review"}]}
+  ]
+}

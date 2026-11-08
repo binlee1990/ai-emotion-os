@@ -103,10 +103,13 @@ class AppraisalEngine:
             goal_relevance = max(goal_relevance, max(0.35, 0.8 * agent.goal_importance("esteem")))
         if event.aesthetic is not None:
             # 审美：内在愉悦度主导，但仍需基线相关（§3.3 审美族要点）
-            goal_relevance = max(goal_relevance, 0.35)
+            goal_relevance = max(goal_relevance, 0.45)
         if event.category.value == "H_novelty" and goal_relevance < 0.3:
             # 认识性需要：信息缺口基线相关，开放性调制
             goal_relevance = max(goal_relevance, _clip(0.25 + 0.3 * agent.personality.openness))
+        if event.category.value == "J_body" and event.pleasantness != 0.0:
+            # 内感受显著性感：身体状态变化本身即相关（§2.5 J；岛叶内感受）
+            goal_relevance = max(goal_relevance, _clip(0.3 + 0.4 * abs(event.pleasantness)))
 
         # ---- SEC② 含义 ----
         if touched:

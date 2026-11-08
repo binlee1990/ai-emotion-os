@@ -41,9 +41,9 @@ class EmotionEngine:
         # 1) 评价（评价先行）
         r = self.appraiser.appraise(event, self.agent)
 
-        # 2) 生成前调节（重评类：改评价向量）
+        # 2) 生成前调节（重评类：改评价向量；效力含调节资源耗竭）
         if active in (Strategy.COGNITIVE_REAPPRAISAL, Strategy.ATTENTION_DEPLOYMENT):
-            r = reappraise(r, self.agent, active)
+            r = reappraise(r, self.agent, active, state=self.state)
 
         # 3) 生成（习惯化/敏感化乘数施加于发作强度）
         hab = self.dynamics.habituation_multiplier(event.stimulus_key, self.state, self.agent.sensitized_keys)
@@ -62,6 +62,10 @@ class EmotionEngine:
         ]
 
         # 4) 动力学整合（惯性/心情/残余/峰终/反刍/对象记账）+ 习惯化计数
+        repeat_stimulus = (
+            event.stimulus_key is not None
+            and self.state.habituation.get(event.stimulus_key, 0) >= 1
+        )
         final_acts = {ep.category: ep.intensity for ep in episodes}
         charge_updates: dict[str, float] = {}
         if event.moral is not None and event.moral.violator:
@@ -82,6 +86,7 @@ class EmotionEngine:
             event_irreversibility=1.0 - event.reversibility,
             dt_minutes=dt_minutes,
             charge_updates=charge_updates,
+            repeat_stimulus=repeat_stimulus,
         )
         self.dynamics.record_stimulus(event.stimulus_key, self.state)
 

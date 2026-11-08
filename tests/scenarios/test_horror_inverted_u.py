@@ -57,3 +57,11 @@ class TestInvertedU:
         low_ss = run(0.6, ss=0.1).get("fear_enjoyment", 0)
         high_ss = run(0.6, ss=0.95).get("fear_enjoyment", 0)
         assert high_ss > low_ss
+
+    def test_safety_frame_smooth_ramp(self):
+        """v0.2：安全框架平滑过渡（0.2–0.8 线性坡）——半安全给半享受，无悬崖。"""
+        full = run(0.6, safety=1.0).get("fear_enjoyment", 0)
+        half = run(0.6, safety=0.5).get("fear_enjoyment", 0)
+        zero = run(0.6, safety=0.0).get("fear_enjoyment", 0)
+        assert zero == 0.0
+        assert 0.15 < half < 0.85 * full

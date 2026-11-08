@@ -99,3 +99,47 @@ class TestDimsBlending:
         assert -0.1 < d.valence < 0.1          # 又好气又好笑：效价近中
         assert d.arousal > 0.5
         assert blend({}).valence == 0.0
+
+
+class TestV02Categories:
+    """v0.2 新类别（§6.2 下行比较、§5.3 naches、§5.8 集体同步）。"""
+
+    def test_downward_comparison_superiority_and_sympathy(self):
+        from emotion_os.core import AffectState, MoodState
+        # 讨厌的对手应得地跌落 → 优越
+        e = Event(category=EventCategory.COMPARISON, affects="rival",
+                  social=SocialInfo(direction="down", deservedness=0.8))
+        a = agent()
+        a.liking["rival"] = -0.5
+        g, _ = gen(e, a)
+        acts1 = {ep.category: ep.intensity for ep in g.episodes}
+        assert acts1.get("superiority", 0) > 0.1
+        # 喜欢的朋友不应得地失势 → 同情为主，几乎无优越
+        e2 = Event(category=EventCategory.COMPARISON, affects="friend",
+                   social=SocialInfo(direction="down", deservedness=0.1))
+        g2, _ = gen(e2, agent())
+        acts2 = {ep.category: ep.intensity for ep in g2.episodes}
+        assert acts2.get("sympathy", 0) > acts2.get("superiority", 0)
+        # 心情低落时 → 额外安慰
+        low_mood = AffectState(mood=MoodState(valence=-0.5))
+        g3, _ = gen(e2, agent(), state=low_mood)
+        acts3 = {ep.category: ep.intensity for ep in g3.episodes}
+        assert acts3.get("comfort", 0) > 0.05
+
+    def test_naches_when_protege_succeeds_by_my_help(self):
+        a = agent()
+        a.liking["protege"] = 0.7
+        e = Event(category=EventCategory.COMPARISON, affects="protege",
+                  caused_by=a.agent_id,
+                  social=SocialInfo(direction="up", deservedness=0.9))
+        g, _ = gen(e, a)
+        acts = {ep.category: ep.intensity for ep in g.episodes}
+        assert acts.get("naches", 0) > 0.1      # 我助之人成功 → 欣慰
+
+    def test_collective_effervescence_on_group_sync(self):
+        from emotion_os.core import BondInfo
+        e = Event(category=EventCategory.BOND, affects="group:stadium",
+                  bond=BondInfo(delta=0.8, sudden=True))
+        g, _ = gen(e, agent())
+        acts = {ep.category: ep.intensity for ep in g.episodes}
+        assert acts.get("collective_effervescence", 0) > 0.2

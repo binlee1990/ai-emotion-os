@@ -67,6 +67,19 @@ class TestReappraisal:
         assert r_strong.goal_relevance < r_weak.goal_relevance
         assert regulation_strength(strong) > regulation_strength(weak)
 
+    def test_depleted_state_reduces_reappraisal(self):
+        """v0.2：调节力并入状态项——耗竭后重评效力下降（复审 P2-1）。"""
+        from emotion_os.core.state import AffectState
+
+        a = agent(capacity=0.8, granularity=0.8)
+        fresh = AffectState()
+        depleted = AffectState(regulation_depletion=0.9)
+        assert regulation_strength(a, depleted) < 0.6 * regulation_strength(a, fresh)
+        r = AppraisalEngine().appraise(insult_event(), a)
+        r_dep = reappraise(r, a, Strategy.COGNITIVE_REAPPRAISAL, state=depleted)
+        r_fresh = reappraise(r, a, Strategy.COGNITIVE_REAPPRAISAL, state=fresh)
+        assert r_dep.goal_relevance > r_fresh.goal_relevance   # 耗竭 → 降得更少
+
 
 class TestSuppression:
     def test_suppression_costs_but_keeps_experience(self):

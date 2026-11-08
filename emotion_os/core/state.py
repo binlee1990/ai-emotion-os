@@ -72,7 +72,10 @@ class MemoryTrace:
 
     @property
     def remembered_valence(self) -> float:
-        """记忆评分 ≈ (峰 + 终)/2（Fredrickson & Kahneman 1993）。"""
+        """记忆评分 ≈ (峰 + 终)/2（等权为模型惯例而非估计值：Kahneman, Fredrickson,
+        Schreiber & Redelmeier 1993, Psych Science 4:401-405；Redelmeier, Katz & Kahneman
+        2003, Pain 104:187-194 的 RCT 支持规则本身——峰值与末段均为显著预测因子、时长不预测，
+        但未报告精确相对权重；2022 元分析 Alaybek et al., OBHDP 170:104149 支持峰终稳健）。"""
         return 0.5 * self.peak_valence + 0.5 * self.end_valence
 
     def observe(self, valence: float, intensity: float) -> None:
@@ -109,6 +112,9 @@ class AffectState:
     regulation_depletion: float = 0.0       # 调节资源消耗（抑制代价累积）
     # 对特定对象的未偿情绪记账（R-APP-02/03 跨事件链）：violator→义愤强度、被羡慕者→恶意强度
     charges: dict[str, float] = field(default_factory=dict)
+    # wanting/liking 双池（§6.3.6 双通道独立环路）：wanting 池衰减更慢——「刷完空虚」的不对称基础
+    wanting_pool: float = 0.0
+    liking_pool: float = 0.0
 
     def activation(self, category: str) -> float:
         ep = self.episodes.get(category)
