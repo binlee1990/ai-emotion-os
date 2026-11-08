@@ -159,6 +159,53 @@ def main() -> int:
         categories.append(item)
         families.setdefault(c.family, []).append(c.zh)
 
+    # ---- 6) 评价维度全表（AppraisalResult 全部字段，SEC 四检查分组）----
+    appraisal_dims = [
+        ("SEC① 相关性", "novelty", "新异性/突发性", "0–1"),
+        ("SEC① 相关性", "pleasantness", "内在愉悦度", "−1–1"),
+        ("SEC① 相关性", "goal_relevance", "目标/需要相关性（为零则零情绪）", "0–1"),
+        ("SEC② 含义", "conduciveness", "目标促进（+）/阻碍（−）", "−1–1"),
+        ("SEC② 含义", "causality_agent", "归因对象（谁干的）", "id / None"),
+        ("SEC② 含义", "causality_intent", "归因故意性", "deliberate/accidental/unknown/none"),
+        ("SEC② 含义", "outcome_probability", "结果概率", "0–1"),
+        ("SEC② 含义", "expectancy_violation", "预期违背", "0–1"),
+        ("SEC② 含义", "urgency", "紧迫性", "0–1"),
+        ("SEC③ 应对潜力", "control", "能改变它吗", "0–1"),
+        ("SEC③ 应对潜力", "power", "能承受它吗", "0–1"),
+        ("SEC③ 应对潜力", "adjustment", "能调整适应吗", "0–1"),
+        ("SEC④ 规范意义", "internal_standard", "自我理想：违反（−）…符合（+）", "−1–1"),
+        ("SEC④ 规范意义", "external_standard", "群体规范：违反（−）…美德（+）", "−1–1"),
+        ("派生", "occ_branches", "适用的 OCC 分支（可多个）", "枚举组"),
+        ("派生", "primary_branch", "主分支", "枚举"),
+        ("派生", "safety_frame", "安全框架（虚构保护罩）", "0–1"),
+        ("派生", "fictionality", "虚构度", "0–1"),
+        ("派生", "affects", "情绪主体（谁在感受）", "id"),
+        ("派生", "n_goals_affected", "受影响目标数", "整数"),
+    ]
+
+    # ---- 7) 动力学与强度常数全表（一行一条，含出处注记——出处取自代码注释）----
+    from emotion_os import dynamics as dyn
+    from emotion_os.generation.intensity import LOSS_AVERSION, RESIDUE_GAIN, STATE_AMP_SLEEP
+    dynamics_consts = [
+        ("习惯化每步乘数", "HABITUATION_DECAY", dyn.HABITUATION_DECAY, "同刺激重复呈现的激活乘数", "自设（文献为双时间尺度，无单一值）"),
+        ("敏感化放大", "SENSITIZATION_GAIN", dyn.SENSITIZATION_GAIN, "创伤相关线索的反应增强", "自设（§4.2 机制方向）"),
+        ("唤醒残余半衰期", "RESIDUE_HALF_LIFE", dyn.RESIDUE_HALF_LIFE, "兴奋转移残余窗（分钟）", "Zillmann 1971「3–5 分钟强残余」一致"),
+        ("残余摄入比", "RESIDUE_INTAKE", dyn.RESIDUE_INTAKE, "发作唤醒进入残余的比例", "自设"),
+        ("心情 EMA 权重", "MOOD_EMA_WEIGHT", dyn.MOOD_EMA_WEIGHT, "单事件对心情层的慢速影响", "量级参照 Kuppens 2010 惯性 0.20–0.33"),
+        ("反刍半衰期", "RUMINATION_HALF_LIFE", dyn.RUMINATION_HALF_LIFE, "意难平余韵（分钟，小时级）", "自设（意难平时程）"),
+        ("反刍增益", "RUMINATION_GAIN", dyn.RUMINATION_GAIN, "不可逆损失→反刍压力增量", "自设"),
+        ("对象记账半衰期", "CHARGE_HALF_LIFE", dyn.CHARGE_HALF_LIFE, "对冒犯者的怒账衰减（分钟）", "自设"),
+        ("wanting 池半衰期", "WANTING_HALF_LIFE", dyn.WANTING_HALF_LIFE, "欲望池衰减（分钟，慢于快感）", "自设（Berridge 无文献常数）"),
+        ("liking 池半衰期", "LIKING_HALF_LIFE", dyn.LIKING_HALF_LIFE, "快感池衰减（分钟，快衰减）", "自设（同上）"),
+        ("恐惧享受顶点", "FEAR_ENJOYMENT_PEAK", FEAR_ENJOYMENT_PEAK, "倒 U 最适恐惧点", "Andersen 2020 OSF 拟合（CI 0.59–1.09）"),
+        ("损失厌恶系数 λ", "LOSS_AVERSION", LOSS_AVERSION, "损失侧强度放大（约 2:1）", "T&K 1992=2.25 / Brown 2024≈1.955，代码取 2.0"),
+        ("残余加成", "RESIDUE_GAIN", RESIDUE_GAIN, "唤醒残余对高唤醒类别的加成", "自设（兴奋转移幅度）"),
+        ("睡眠剥夺放大", "STATE_AMP_SLEEP", STATE_AMP_SLEEP, "睡眠不足时的强度放大", "杏仁核反应 +~60%（§4.2）"),
+    ]
+    family_halflives = [
+        (fam, FAMILY_HALF_LIFE_MIN[fam]) for fam in FAMILY_HALF_LIFE_MIN
+    ]
+
     data = {
         "meta": {
             "version": "0.7.0", "categories": len(CATALOG), "tests": 163, "releases": 7,
@@ -168,6 +215,14 @@ def main() -> int:
         "event_types": event_types,
         "categories": categories,
         "families": {k: len(v) for k, v in families.items()},
+        "appraisal_dims": [
+            {"group": g, "field": f, "zh": z, "range": r} for g, f, z, r in appraisal_dims
+        ],
+        "dynamics_consts": [
+            {"zh": z, "field": f, "value": v, "meaning": m, "src": s}
+            for z, f, v, m, s in dynamics_consts
+        ],
+        "family_halflives": family_halflives,
         "events": events,
         "registers": registers,
         "fear_enjoyment": fear_enjoyment,

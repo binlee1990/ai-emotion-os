@@ -183,6 +183,30 @@
   .factlist b { font-family: var(--mono); font-size: 15px; color: var(--vermilion); }
   .src { font-size: 11.5px; color: var(--grey); margin-top: 10px; line-height: 1.6; }
 
+  /* ---------- §7 维度与常数全表 ---------- */
+  .datatable { border: 1px solid var(--hairline); border-radius: 10px; background: #fff;
+    overflow: hidden; }
+  .datatable table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
+  .datatable th { text-align: left; font-size: 11px; color: var(--grey); font-weight: 500;
+    font-family: var(--mono); letter-spacing: 0.06em; padding: 9px 14px;
+    border-bottom: 1px solid var(--hairline); background: var(--paper); white-space: nowrap; }
+  .datatable td { padding: 8px 14px; border-bottom: 1px solid #EDF0F5; vertical-align: top; }
+  .datatable tr:last-child td { border-bottom: none; }
+  .datatable td.f { font-family: var(--mono); font-size: 12px; color: var(--indigo); white-space: nowrap; }
+  .datatable td.v { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .datatable td .grp { font-size: 10.5px; color: var(--vermilion); font-family: var(--mono);
+    display: block; letter-spacing: 0.05em; }
+  .datatable td.src { font-size: 11.5px; color: var(--grey); }
+  .datatable .num { color: var(--vermilion); }
+  .tablewrap { overflow-x: auto; }
+  .halfgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px; margin-top: 12px; }
+  .halfgrid .hcell { border: 1px solid var(--hairline); border-radius: 8px; background: #fff;
+    padding: 6px 12px; font-size: 12.5px; display: flex; justify-content: space-between;
+    align-items: baseline; }
+  .halfgrid .hcell b { font-family: var(--mono); font-weight: 500; color: var(--indigo); }
+  @media (max-width: 860px) { .halfgrid { grid-template-columns: 1fr 1fr; } }
+
   footer { border-top: 1px solid var(--hairline); margin-top: 30px; padding: 26px 0 46px;
     font-size: 12.5px; color: var(--grey); display: flex; flex-wrap: wrap;
     gap: 8px 28px; justify-content: space-between; }
@@ -221,6 +245,7 @@
   <a href="#arc-sec"><b>4</b>情绪随时间演化</a>
   <a href="#reg-sec"><b>5</b>同一情绪的不同说法</a>
   <a href="#mech-sec"><b>6</b>数字的出处</a>
+  <a href="#dims-sec"><b>7</b>全部维度与常数</a>
 </nav>
 
 
@@ -303,6 +328,31 @@
         全部出处见 research/ 与 docs/architecture-contract.md。</div>
     </div>
   </div>
+</section>
+
+<section id="dims-sec">
+  <div class="stage-label"><span class="no">§7</span><h2>全部维度与常数</h2></div>
+  <p class="stage-sub">引擎的两组底层参数，一行一条、全量列出：评价器输出的每一个维度，
+  和动力学层的每一个常数（含出处；「自设」表示文献无数值、引擎取的工程近似）。</p>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin:6px 0 10px">评价维度（20 项，SEC 四检查 + 派生）</h3>
+  <div class="tablewrap"><div class="datatable">
+    <table>
+      <thead><tr><th>分组</th><th>字段</th><th>含义</th><th>取值</th></tr></thead>
+      <tbody id="dimrows"></tbody>
+    </table>
+  </div></div>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin:24px 0 10px">动力学与强度常数（14 项）</h3>
+  <div class="tablewrap"><div class="datatable">
+    <table>
+      <thead><tr><th>常数</th><th>值</th><th>含义</th><th>出处</th></tr></thead>
+      <tbody id="constrows"></tbody>
+    </table>
+  </div></div>
+
+  <h3 style="font-family:var(--serif);font-size:17px;margin:24px 0 4px">各情绪家族半衰期（分钟）</h3>
+  <div class="halfgrid" id="halfgrid"></div>
 </section>
 
 <footer>
@@ -620,6 +670,21 @@ const DATA = __DATA__;
     `<b>${m.releases}</b> 版交付：实证标定 → 真实 LLM 端到端 → 可安装库`,
     `双供应商 LLM 端到端：<b>claude</b> + <b>codex</b> CLI 贯通「叙事 → 引擎 → 中文表达」`,
   ].map(t => `<div>${t}</div>`).join('');
+})();
+
+/* ---------- §7 维度与常数全表 ---------- */
+(function renderDims() {
+  document.getElementById('dimrows').innerHTML = DATA.appraisal_dims.map(d => `
+    <tr><td><span class="grp">${d.group}</span></td>
+        <td class="f">${d.field}</td><td>${d.zh}</td><td class="v">${d.range}</td></tr>`).join('');
+  document.getElementById('constrows').innerHTML = DATA.dynamics_consts.map(c => `
+    <tr><td><b style="font-weight:600">${c.zh}</b><br><span style="font-family:var(--mono);font-size:11px;color:var(--grey)">${c.field}</span></td>
+        <td class="v num">${c.value}</td><td>${c.meaning}</td><td class="src">${c.src}</td></tr>`).join('');
+  const FAMZH = { anger: '愤怒族', fear: '恐惧族', disgust: '厌恶族', sadness: '悲伤族',
+    grief: '哀恸', joy: '快乐族', self_conscious: '自我意识族', social_moral: '社会道德族',
+    love: '爱族', epistemic: '认知族', aesthetic: '审美族', kama_muta: '被感动', prospect: '前景族' };
+  document.getElementById('halfgrid').innerHTML = DATA.family_halflives.map(([f, v]) => `
+    <div class="hcell"><span>${FAMZH[f] || f}</span><b class="num">${v}</b></div>`).join('');
 })();
 </script>
 </body>
