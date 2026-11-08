@@ -120,6 +120,22 @@ rules:
       - example: "按时长加权平均评分"
         counter: 时长加权会稀释终值 → BE 与 HE 的评分差被低估，意难平（§3.3）不可复现
 
+  - rule_id: R-DYN-03
+    description: >
+      兴奋转移（调研§4.3 Zillmann：未消退的唤醒残余转移到后续情绪并放大其强度）：
+      前置高唤醒事件（悬念/威胁/愤怒）的激活残余进入后续正向事件的强度计算——
+      绝杀/反转的 fiero×relief 强于无前置悬念的同等成就（§5.6「绝杀=fiero×兴奋转移」）。
+      转移量随残余窗（分钟级半衰期）衰减，前置事件久远时转移归零。
+    formal_check: pytest:tests/scenarios/test_sport_social.py::TestExcitationTransfer::test_buzzer_beater_amplified_by_suspense
+    formal_check_note: 成对数值断言（悬念→绝杀 vs 直接绝杀的 relief/fiero 差均>0.1）；同文件 BIRGing/CORFing、跑者高潮、
+      已读不回、热搜义愤→解气为 §5.6–§5.7 场景合同（架构合同 §7 V5），不单列规则。
+    valid_examples:
+      - "落后僵持(suspense=0.5) → 2 分钟后压哨绝杀 → relief/fiero 显著高于无僵持直胜"
+      - "争吵后立刻收到好消息 → 喜悦被残余唤醒放大（残留愤怒同时更快消退）"
+    edge_or_counter:
+      - example: "前置悬念后 2 小时才发生同等成就"
+      - counter: 若仍等幅放大则违反残余窗衰减——转移应≈0；持续等幅会把「旧账」无限计入新事件强度
+
   - rule_id: R-EXP-01
     description: >
       双通道表达（调研§6.3.2、§3.4）：表达层同时输出 (a)类别中文词+强度分级 (b)4D 连续坐标；

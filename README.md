@@ -17,8 +17,20 @@ adapter = NLEventAdapter(llm_call=my_llm)        # Callable[[str], str]：prompt
 event = adapter.adapt("反派当众羞辱主角").event   # → Event，经引擎全管线
 ```
 
-- 领域规则（评价→情绪映射合同）：[docs/grammar/appraisal-grammar.yaml](docs/grammar/appraisal-grammar.yaml)
-- 测试：`python -m pytest tests/ -q`（115 项：单元 + 短剧/游戏/音乐等 11 个场景）
-- 任务状态：[.tasks/emotion-os-v0.2.task.md](.tasks/emotion-os-v0.2.task.md)（v0.1：[.tasks/emotion-os-v0.1.task.md](.tasks/emotion-os-v0.1.task.md)）
+CLI 供应商包装（v0.3，真实端到端）：`claude_cli_call` / `codex_cli_call` 开箱注入——
 
-范围：v0.1 为结构化事件输入的研究原型；自然语言适配器与运行时配置见架构合同 §8。
+```python
+from emotion_os.adapters import claude_cli_call, NLEventAdapter
+event = NLEventAdapter(llm_call=claude_cli_call).adapt("反派当众羞辱主角").event
+```
+
+- 演示：`python examples/demo_story.py`（离线 8 事件弧线轨迹表）；
+  `python examples/llm_e2e.py`（双 CLI 供应商真实端到端，CLI 缺席自动 SKIP）
+- 领域规则（评价→情绪映射合同）：[docs/grammar/appraisal-grammar.yaml](docs/grammar/appraisal-grammar.yaml)
+- 参数标定：倒U顶点 `FEAR_ENJOYMENT_PEAK=0.84` 由 Andersen 2020 OSF 开放数据拟合
+  （Likert 7.55/9，换算假设 `fear_engine = fear_likert/9`；delta-method 95% CI [0.59, 1.09]；
+  复现脚本 [scripts/fit_fear_enjoyment_peak.py](scripts/fit_fear_enjoyment_peak.py)）
+- 测试：`python -m pytest tests/ -q`（130 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
+- 任务状态：[.tasks/emotion-os-v0.3.task.md](.tasks/emotion-os-v0.3.task.md)（v0.1/v0.2 见同目录）
+
+范围：结构化事件输入的研究原型；运行时配置与未决项见架构合同 §8。

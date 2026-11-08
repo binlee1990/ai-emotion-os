@@ -38,6 +38,12 @@ class EmotionEngine:
                 strategy: str | None = None) -> ProcessResult:
         active = strategy or self.default_strategy
 
+        # 0) 时间推进：距上一事件 dt 分钟——先衰减（发作/残余/记账/双池，R-DYN-01
+        #    三层时间尺度）再生成。修复 v0.3 前的时序缺陷：生成先于时钟推进，
+        #    事件间隔从未参与衰减（兴奋转移/残余读到的永远是上一事件结束瞬间的值）。
+        if dt_minutes > 0:
+            self.dynamics.tick(self.state, dt_minutes)
+
         # 1) 评价（评价先行）
         r = self.appraiser.appraise(event, self.agent)
 
@@ -84,7 +90,7 @@ class EmotionEngine:
             event_arousal=gen.dims.arousal,
             event_importance=r.goal_relevance,
             event_irreversibility=1.0 - event.reversibility,
-            dt_minutes=dt_minutes,
+            dt_minutes=0.0,   # 时钟已在第 0 步推进，这里只并入新发作
             charge_updates=charge_updates,
             repeat_stimulus=repeat_stimulus,
         )

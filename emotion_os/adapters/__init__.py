@@ -1,4 +1,10 @@
 """emotion_os.adapters：自然语言 → Event 适配层。"""
+from .cli_providers import (
+    CLICallError,
+    CLIUnavailableError,
+    claude_cli_call,
+    codex_cli_call,
+)
 from .nl_event import (
     EVENT_JSON_CONTRACT,
     NLEventAdapter,
@@ -15,4 +21,8 @@ __all__ = [
     "EventParseError",
     "build_extraction_prompt",
     "parse_event",
+    "CLICallError",
+    "CLIUnavailableError",
+    "claude_cli_call",
+    "codex_cli_call",
 ]

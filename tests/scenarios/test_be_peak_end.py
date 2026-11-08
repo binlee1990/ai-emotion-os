@@ -56,9 +56,13 @@ class TestBEEnding:
         eng = watch(2, be=True)
         # 不可逆高重要性损失 → 反刍压力与意难平
         assert eng.state.rumination > 0.2
-        r = eng.process(
-            Event(category=EventCategory.NOVELTY, novelty=0.5, description="回想结局"),
-            dt_minutes=30.0,
-        )
-        a = {ep.category: ep.intensity for ep in r.episodes}
-        assert a.get("yi_nan_ping", 0) > 0.1
+        recall = Event(category=EventCategory.NOVELTY, novelty=0.5, description="回想结局")
+        r_be = eng.process(recall, dt_minutes=30.0)
+        a = {ep.category: ep.intensity for ep in r_be.episodes}
+        # v0.3 时序修复（process 先衰减再生成）后 30min 间隔余韵 ×0.94——
+        # 意难平仍显著激活，且 HE 同样回想不产生（对比断言）
+        assert a.get("yi_nan_ping", 0) > 0.05, f"yi_nan_ping={a.get('yi_nan_ping')}"
+        he = watch(2, be=False)
+        r_he = he.process(recall, dt_minutes=30.0)
+        a_he = {ep.category: ep.intensity for ep in r_he.episodes}
+        assert a_he.get("yi_nan_ping", 0) < 0.03, f"HE yi_nan_ping={a_he.get('yi_nan_ping')}"

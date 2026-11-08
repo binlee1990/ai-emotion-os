@@ -110,19 +110,38 @@ def _strip_fences(text: str) -> str:
     return t
 
 
+def _first_json_object(text: str) -> dict[str, Any]:
+    """提取首个完整 JSON 对象（raw_decode），忽略前导说明与尾随噪音。
+
+    轻量档模型常见形态：JSON 后追加一句解释、或围栏闭合后再补文字——
+    整体 json.loads 报 Extra data，但首个对象本身合法。
+    """
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(text):
+        if ch != "{":
+            continue
+        try:
+            obj, _end = decoder.raw_decode(text, i)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict):
+            return obj
+    raise EventParseError(f"文本中无合法 JSON 对象: {text[:120]!r}")
+
+
 def parse_event(payload: dict[str, Any] | str) -> ParseOutcome:
     """dict/JSON 字符串 → Event。结构性错误抛 EventParseError；越界截断记 warning。"""
     warnings: list[str] = []
     if isinstance(payload, str):
         text = _strip_fences(payload)
-        if not text.startswith("{"):
-            start, end = text.find("{"), text.rfind("}")
-            if start >= 0 and end > start:
-                text = text[start : end + 1]
         try:
             payload = json.loads(text)
         except json.JSONDecodeError as exc:
-            raise EventParseError(f"非法 JSON: {exc}") from exc
+            # 尾随/前导噪音（低 effort 模型在 JSON 外追加文字）：取首个完整对象
+            try:
+                payload = _first_json_object(text)
+            except EventParseError:
+                raise EventParseError(f"非法 JSON: {exc}") from exc
     if not isinstance(payload, dict):
         raise EventParseError(f"payload 须为 JSON 对象，得到 {type(payload).__name__}")
 

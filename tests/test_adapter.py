@@ -112,6 +112,18 @@ class TestParse:
         out = parse_event(fenced)
         assert out.event.justice_target == "villain"
 
+    def test_trailing_noise_after_json_extracted(self):
+        """v0.3：轻量档 CLI 在 JSON 后追加说明/围栏外文字——取首个完整对象。"""
+        body = json.dumps(FACESLAP_JSON, ensure_ascii=False)
+        noisy = f"```json\n{body}\n```\n以上为抽取结果，字段范围均已核对。"
+        out = parse_event(noisy)
+        assert out.event.justice_target == "villain"
+
+    def test_leading_prose_before_json_extracted(self):
+        body = json.dumps(FACESLAP_JSON, ensure_ascii=False)
+        out = parse_event(f"好的，以下是转换结果：\n{body}")
+        assert out.event.category is not None
+
 
 class TestPrompt:
     def test_prompt_contains_contract_and_text(self):

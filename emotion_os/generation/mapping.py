@@ -20,7 +20,7 @@ def _b01(x: float) -> float:
 
 
 def _tent(x: float, peak: float) -> float:
-    """分段线性倒 U：peak 处最大，两侧线性衰减（待标定；调研 §1.5.4 享受峰值「恰在不能忍受之下一档」）。"""
+    """分段线性倒 U：peak 处最大，两侧线性衰减（调研 §1.5.4 享受峰值「恰在不能忍受之下一档」）。"""
     x = _b01(x)
     if x <= peak:
         return x / max(peak, 1e-6)
@@ -28,10 +28,18 @@ def _tent(x: float, peak: float) -> float:
 
 
 # 最适恐惧点：Andersen et al. 2020 (Psychological Science 31:1497-1510, doi:10.1177/0956797620972116)
-# 鬼屋研究确证享受-恐惧倒 U（地点层面二次项 β=-0.05, p=.014），但未发表享受峰值对应的恐惧绝对值
-#（原始数据 OSF: osf.io/43hzk 可拟合）；「最爱恰在不能忍受之下一档」出自 Rozin et al. 2013
-# (Judgment and Decision Making 8:439-447)——序数表述，无物理单位。0.30 为自设待标定值。
-FEAR_ENJOYMENT_PEAK = 0.30   # 最适恐惧点（激活尺度，待标定）
+# 鬼屋研究确证享受-恐惧倒 U（地点层面二次项 β=-0.05, p=.014）。顶点由 OSF 开放数据
+# (osf.io/43hzk) 复现拟合：enjoyment ~ fear + fear² + age + gender + motivation
+# + (1|participant) + (1|location)（lme4 结构，statsmodels 复现），β_lin=0.671、
+# β_quad=-0.044（论文报告 -0.05；mot/gender/age 效应均与论文一致）→ 顶点 Likert
+# 7.55/9。换算假设：fear_engine = fear_likert/9（0–9 线性映射 0–1，「9=前所未有
+# 的害怕」≈ 引擎恐惧上限）。顶点 delta-method 95% CI=[5.32, 9.78]/9（引擎尺度
+# [0.59, 1.09]）——点估计精度弱于两位小数所示；零依赖 OLS+位置固定效应回退口径
+# 给 6.40/9=0.71，落在 CI 内。
+# 复现脚本：scripts/fit_fear_enjoyment_peak.py。v0.2 自设 0.30 偏低（意味着几乎
+# 不怕才最爽，与数据相反）；「最爱恰在不能忍受之下一档」的 Rozin et al. 2013
+# (JDM 8:439-447) 序数表述与此一致（顶点在量表 84% 高位、极高处回落）。
+FEAR_ENJOYMENT_PEAK = 0.84   # 最适恐惧点（Andersen 2020 OSF 数据拟合，7.55/9 换算；CI [0.59,1.09]）
 
 
 # ---------------- pass 1：家族评价器 ----------------
