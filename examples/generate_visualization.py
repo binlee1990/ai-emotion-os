@@ -19,10 +19,12 @@ from pathlib import Path
 
 try:
     from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
+    from emotion_os.generation.catalog import CATALOG, HALF_LIFE_BY_CATEGORY
     from emotion_os.generation.mapping import FEAR_ENJOYMENT_PEAK, _tent
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
+    from emotion_os.generation.catalog import CATALOG, HALF_LIFE_BY_CATEGORY
     from emotion_os.generation.mapping import FEAR_ENJOYMENT_PEAK, _tent
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -117,12 +119,39 @@ def main() -> int:
         },
     }
 
+    # ---- 5) 全量类型空间：事件类型 + 情绪类别全景 ----
+    # 事件类型（A–K）：枚举值 + docstring 中的定义句
+    event_types = []
+    for cat in EventCategory:
+        doc = (cat.__doc__ or "").strip()
+        event_types.append({"id": cat.value, "zh": doc.split("：", 1)[0], "def": doc})
+
+    # 情绪类别全量（88 类）：家族分组 + 4D 原型 + 行动倾向 + 半衰期 + 词表覆盖
+    from emotion_os.core.state import FAMILY_HALF_LIFE_MIN
+    from emotion_os.expression.lexicon import _LADDERS, _REGISTER_LADDERS
+    categories = []
+    families: dict[str, list] = {}
+    for c in CATALOG.values():
+        item = {
+            "id": c.id, "zh": c.zh, "en": c.en, "family": c.family,
+            "v": c.valence, "a": c.arousal, "d": c.dominance, "u": c.unpredictability,
+            "tendency": c.tendency,
+            "half_life": HALF_LIFE_BY_CATEGORY.get(c.id, FAMILY_HALF_LIFE_MIN.get(c.family)),
+            "ladder": len(_LADDERS.get(c.id, [])),
+            "registers": sorted({reg for (cid, reg) in _REGISTER_LADDERS if cid == c.id}),
+        }
+        categories.append(item)
+        families.setdefault(c.family, []).append(c.zh)
+
     data = {
         "meta": {
-            "version": "0.7.0", "categories": 88, "tests": 163, "releases": 7,
+            "version": "0.7.0", "categories": len(CATALOG), "tests": 163, "releases": 7,
             "peak": FEAR_ENJOYMENT_PEAK,
             "peak_ci": "[0.59, 1.09]",
         },
+        "event_types": event_types,
+        "categories": categories,
+        "families": {k: len(v) for k, v in families.items()},
         "events": events,
         "registers": registers,
         "fear_enjoyment": fear_enjoyment,

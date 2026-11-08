@@ -129,6 +129,53 @@
   .factlist b { font-family: var(--mono); font-size: 15px; color: var(--vermilion); }
   .src { font-size: 11.5px; color: var(--grey); margin-top: 10px; line-height: 1.6; }
 
+  /* ---------- 事件类型 ---------- */
+  .evtypes { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .evt {
+    border: 1px solid var(--hairline); border-radius: 10px; background: #fff;
+    padding: 12px 14px 10px;
+  }
+  .evt .code {
+    font-family: var(--mono); font-size: 11px; color: var(--grey); letter-spacing: 0.08em;
+  }
+  .evt .code b { color: var(--ink); font-size: 13px; margin-left: 6px; }
+  .evt p { font-size: 12.5px; color: #454B5C; margin-top: 6px; line-height: 1.55; }
+
+  /* ---------- 情绪全景 ---------- */
+  .fambar { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; }
+  .fam {
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    border: 1px solid var(--hairline); border-radius: 99px; padding: 4px 12px 4px 8px;
+    font-size: 12.5px; background: #fff; user-select: none;
+  }
+  .fam i { width: 10px; height: 10px; border-radius: 50%; font-style: normal; }
+  .fam .n { font-family: var(--mono); font-size: 11px; color: var(--grey); }
+  .fam.on { border-color: var(--ink); background: var(--card); }
+  .fam.off { opacity: 0.4; }
+  .axes { display: flex; gap: 8px; margin-left: auto; }
+  .axes button {
+    font: 12px/1 var(--sans); padding: 6px 12px; border-radius: 99px;
+    border: 1px solid var(--hairline); background: #fff; color: var(--ink); cursor: pointer;
+  }
+  .axes button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .axes button:focus-visible, .fam:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+  #space { width: 100%; height: auto; display: block; min-width: 760px; }
+  .space-frame { border: 1px solid var(--hairline); border-radius: 12px; background: #fff;
+    padding: 18px 12px 8px; margin-top: 10px; overflow-x: auto; }
+
+  /* 家族清单 */
+  .famtables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .famtbl { border: 1px solid var(--hairline); border-radius: 10px; background: #fff; padding: 14px 16px 10px; }
+  .famtbl h4 { font-size: 13.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .famtbl h4 i { width: 9px; height: 9px; border-radius: 50%; font-style: normal; }
+  .famtbl h4 span { color: var(--grey); font-weight: 400; font-size: 11.5px; font-family: var(--mono); }
+  .famtbl ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 5px 6px; }
+  .famtbl li {
+    font-size: 12.5px; border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 2px 9px; background: var(--paper);
+  }
+  .famtbl li span { color: var(--grey); font-family: var(--mono); font-size: 10.5px; margin-left: 4px; }
+
   /* ---------- footer ---------- */
   footer {
     border-top: 1px solid var(--hairline); margin-top: 30px; padding: 26px 0 46px;
@@ -163,6 +210,26 @@
   <em>评价 → 生成 → 动力学 → 表达</em>四个阶段，输出中文情绪词与 4D 坐标。
   本页数据由一段八事件示例叙事经引擎计算生成。</p>
 </header>
+
+<section id="evtypes-sec">
+  <div class="stage-label">
+    <h2>事件类型</h2><span>11 类输入事件（调研 §2.5 完备清单）——每个事件至少归入一类</span>
+  </div>
+  <div class="evtypes" id="evtypes"></div>
+</section>
+
+<section id="space-sec">
+  <div class="stage-label">
+    <h2>情绪类别全景</h2><span>88 个类别 · 11 家族 · 各类有 4D 原型与行动倾向——点家族聚焦、再点恢复全选</span>
+  </div>
+  <div class="fambar" id="fambar"></div>
+  <div class="space-frame">
+    <svg id="space" role="img" aria-label="88 个情绪类别在效价-唤醒（或支配-唤醒）平面的分布散点，按家族着色"></svg>
+  </div>
+  <div class="famtables" id="famtables"></div>
+  <div class="src">家族划分与 4D 原型取自调研 §3.3 情绪家族与 §6.2 主对照表；
+    平面横轴可切换（效价 V / 支配 D），纵轴为唤醒 A；括号内数字为动力学半衰期（分钟，部分有文献出处，见架构合同）。</div>
+</section>
 
 <section id="pipeline-sec">
   <div class="stage-label">
@@ -227,6 +294,121 @@
 </div>
 <script>
 const DATA = __DATA__;
+
+/* ---------- 事件类型 ---------- */
+(function renderEvTypes() {
+  document.getElementById('evtypes').innerHTML = DATA.event_types.map(t => `
+    <div class="evt"><div class="code">${t.id}<b>${t.zh}</b></div><p>${t.def}</p></div>`).join('');
+})();
+
+/* ---------- 情绪类别全景 ---------- */
+(function renderSpace() {
+  const FAM = {
+    anger:          { zh: '愤怒族',     col: '#C0392B' },
+    fear:           { zh: '恐惧族',     col: '#3E5AA8' },
+    disgust:        { zh: '厌恶族',     col: '#6B7A3A' },
+    sadness:        { zh: '悲伤族',     col: '#5E6B8C' },
+    joy:            { zh: '快乐族',     col: '#D8552B' },
+    self_conscious: { zh: '自我意识族', col: '#955E96' },
+    social_moral:   { zh: '社会道德族', col: '#B07D3E' },
+    love:           { zh: '爱族',       col: '#C96A6A' },
+    epistemic:      { zh: '认知族',     col: '#3E8C7E' },
+    aesthetic:      { zh: '审美族',     col: '#8C6D4E' },
+    prospect:       { zh: '前景族',     col: '#4E7A8C' },
+  };
+  const cats = DATA.categories;
+  const svg = document.getElementById('space');
+  const W = 1000, H = 560, mL = 56, mR = 20, mT = 18, mB = 46;
+  let axis = 'v';   // 'v' | 'd'
+  const on = new Set(Object.keys(FAM));
+
+  function draw() {
+    const x = v => mL + (W - mL - mR) * (v + 1) / 2;
+    const y = a => mT + (H - mT - mB) * (1 - a);
+    let s = '';
+    // 网格与轴
+    for (const g of [-1, -0.5, 0, 0.5, 1]) {
+      s += `<line x1="${x(g)}" y1="${mT}" x2="${x(g)}" y2="${H - mB}" stroke="#EDF0F5"/>`;
+      s += `<text x="${x(g)}" y="${H - mB + 16}" text-anchor="middle" font-size="10"
+            fill="#878C99" font-family="Consolas,monospace">${g > 0 ? '+' + g : g}</text>`;
+    }
+    s += `<line x1="${x(0)}" y1="${mT}" x2="${x(0)}" y2="${H - mB}" stroke="#D9DDE6"/>`;
+    s += `<text x="${(W + mL) / 2}" y="${H - 8}" text-anchor="middle" font-size="11.5"
+          fill="#878C99">${axis === 'v' ? '效价 valence（−1 负 → +1 正）' : '支配 dominance（−1 被支配 → +1 支配）'}</text>`;
+    s += `<text x="${mL - 34}" y="${(H - mB + mT) / 2}" text-anchor="middle" font-size="11.5"
+          fill="#878C99" transform="rotate(-90 ${mL - 34} ${(H - mB + mT) / 2})">唤醒 arousal</text>`;
+    for (const a of [0, 0.5, 1]) {
+      s += `<text x="${mL - 8}" y="${y(a) + 4}" text-anchor="end" font-size="10"
+            fill="#878C99" font-family="Consolas,monospace">${a.toFixed(1)}</text>`;
+    }
+    // 点与标签（选中家族高亮，未选中淡出；标签 12 相位散开减少重叠）
+    const focus = on.size < Object.keys(FAM).length;
+    const DX = [-10, 0, 10], DY = [-13, 15, -25, 27];
+    cats.forEach((c, i) => {
+      const f = FAM[c.family]; if (!f) return;
+      const dim = !on.has(c.family);
+      const cx = x(c[axis]), cy = y(c.a);
+      const op = dim ? 0.10 : (focus ? 1 : 0.88);
+      const dx = DX[i % 3], dy = DY[(i * 7) % 4];
+      s += `<circle cx="${cx}" cy="${cy}" r="${dim ? 3 : 4}" fill="${f.col}" opacity="${op}"/>`;
+      if (!dim) {
+        s += `<text x="${cx + dx}" y="${cy + dy}" text-anchor="middle" font-size="${focus ? 12 : 10.5}"
+              fill="${focus ? f.col : '#454B5C'}" opacity="${focus ? 1 : 0.85}"
+              font-family="'Songti SC','SimSun',serif">${c.zh}</text>`;
+      }
+    });
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = s;
+  }
+
+  // 家族条 + 轴切换
+  const bar = document.getElementById('fambar');
+  bar.innerHTML = Object.entries(FAM).map(([k, f]) => `
+    <button class="fam on" data-fam="${k}" aria-pressed="true">
+      <i style="background:${f.col}"></i>${f.zh}<span class="n">${DATA.families[k] || 0}</span>
+    </button>`).join('') + `
+    <span class="axes">
+      <button class="on" data-ax="v">效价 V</button>
+      <button data-ax="d">支配 D</button>
+    </span>`;
+  bar.addEventListener('click', e => {
+    const fb = e.target.closest('.fam'), ab = e.target.closest('axes button') || e.target.closest('.axes button');
+    if (fb) {
+      const k = fb.dataset.fam;
+      const focusAll = on.size === Object.keys(FAM).length;   // 当前全选 → 独占聚焦 k
+      if (focusAll) {
+        on.clear(); on.add(k);
+      } else if (on.has(k) && on.size === 1) {
+        Object.keys(FAM).forEach(f => on.add(f));             // 已聚焦 k → 再点恢复全选
+      } else {
+        on.clear(); on.add(k);                                 // 聚焦切换
+      }
+      bar.querySelectorAll('.fam').forEach(b => {
+        const isOn = on.has(b.dataset.fam);
+        b.classList.toggle('on', isOn);
+        b.setAttribute('aria-pressed', isOn);
+      });
+      draw();
+    } else if (ab) {
+      axis = ab.dataset.ax;
+      bar.querySelectorAll('.axes button').forEach(b => b.classList.toggle('on', b.dataset.ax === axis));
+      draw();
+    }
+  });
+  draw();
+
+  // 家族清单（全部 88 类的中文名 + 半衰期）
+  const tables = document.getElementById('famtables');
+  tables.innerHTML = Object.entries(FAM).map(([k, f]) => {
+    const list = cats.filter(c => c.family === k);
+    return `<div class="famtbl">
+      <h4><i style="background:${f.col}"></i>${f.zh}
+        <span>${list.length} 类</span></h4>
+      <ul>${list.map(c =>
+        `<li>${c.zh}${c.half_life != null ? `<span>${c.half_life}</span>` : ''}</li>`).join('')}</ul>
+    </div>`;
+  }).join('');
+})();
 
 /* ---------- 管线解剖 ---------- */
 (function renderPipeline() {
