@@ -157,24 +157,24 @@
 <div class="wrap">
 
 <header>
-  <div class="eyebrow">appraisal theory → <b>computable engine</b> · 评价理论的可计算实现</div>
-  <h1>事件如何变成<br>一句有出处的情绪</h1>
-  <p class="lede">ai-emotion-os 把心理学的评价理论（Scherer 检查、OCC 分类、峰终定律、良性受虐倒 U）
-  实现为一条可运行的管线：<em>事件 → 评价 → 生成 → 动力学 → 表达</em>。
-  本页所有数字均由引擎真实计算产出——包括下面这条八幕叙事的情绪弧线。</p>
+  <div class="eyebrow">ai-emotion-os · <b>Python 库</b> · v0.7.0</div>
+  <h1>情绪引擎全景</h1>
+  <p class="lede">基于评价理论的可计算情绪引擎：输入结构化事件，经
+  <em>评价 → 生成 → 动力学 → 表达</em>四个阶段，输出中文情绪词与 4D 坐标。
+  本页数据由一段八事件示例叙事经引擎计算生成。</p>
 </header>
 
 <section id="pipeline-sec">
   <div class="stage-label">
-    <h2>管线解剖</h2><span>一个事件穿过的五个阶段 · 真实中间产物（第一幕：反派当众羞辱主角）</span>
+    <h2>管线各阶段</h2><span>第一幕事件（反派当众羞辱主角）的实际中间产物</span>
   </div>
   <div class="pipeline" id="pipeline"></div>
-  <div class="arrow-note">同一事件，五次转变——每个中间产物都可以单独检查</div>
+  <div class="arrow-note">以上为第一幕事件的实际处理结果</div>
 </section>
 
 <section class="arc-section">
   <div class="stage-label">
-    <h2>八幕情绪弧线</h2><span>憋屈铺垫 → 反杀打脸 → 和解收尾 · 词为表达层输出，线为三层状态</span>
+    <h2>八幕情绪弧线</h2><span>示例叙事：憋屈铺垫 → 反杀 → 和解收尾 · 词为表达层输出，线为状态层</span>
   </div>
   <div class="arc-frame">
     <svg id="arc" role="img" aria-label="八事件情绪弧线：每个事件的中文情绪词竖排标注，配心情与峰终记忆两条曲线"></svg>
@@ -197,12 +197,12 @@
 
 <section>
   <div class="stage-label">
-    <h2>两个有出处的机制</h2><span>曲线由引擎函数真实计算，系数有实证来源</span>
+    <h2>机制与出处</h2><span>曲线由引擎函数真实计算，系数有实证来源</span>
   </div>
   <div class="mech">
     <div class="panel">
       <h3>恐惧享受倒 U</h3>
-      <div class="sub">安全框架内，享受随恐惧先升后降——顶点 0.84 不是拍的</div>
+      <div class="sub">安全框架内，享受随恐惧强度先升后降；顶点 0.84 由 OSF 数据拟合得出</div>
       <svg id="uu" role="img" aria-label="恐惧与享受的倒U曲线，顶点在恐惧强度0.84处"></svg>
       <div class="src">Andersen et al. 2020 鬼屋现场研究 OSF 开放数据复现拟合：
         Likert 7.55/9 → 引擎尺度 0.84（95% CI [0.59, 1.09]）；
@@ -321,7 +321,7 @@ const DATA = {"meta": {"version": "0.7.0", "categories": 88, "tests": 163, "rele
     `峰终定律（时长忽视）：记忆评分 = <b>峰值×0.5 + 终值×0.5</b>。
      本弧线终值 <b class="num">${last.memory > 0 ? '+' : ''}${last.memory.toFixed(2)}</b>（HE 收尾 → 正分），
      当前心情 valence <b class="num">${last.mood > 0 ? '+' : ''}${last.mood.toFixed(2)}</b>——
-     单事件撼不动慢速层，这正是三层动力学的分层。`;
+     单次事件对心情层的影响很小（慢速 EMA）。`;
 })();
 
 /* ---------- 语域 ---------- */
