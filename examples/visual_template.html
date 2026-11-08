@@ -2,7 +2,7 @@
 <html lang="zh-Hans">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>情绪引擎全景</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -28,99 +28,153 @@
   .wrap { max-width: 1060px; margin: 0 auto;
     padding-left: max(24px, env(safe-area-inset-left, 0px));
     padding-right: max(24px, env(safe-area-inset-right, 0px)); }
-  section { padding: 56px 0; }
+  section { padding: 52px 0; }
   .num { font-variant-numeric: tabular-nums; }
 
   /* ---------- header ---------- */
-  header { padding: 72px 0 40px; }
-  .eyebrow {
-    font-family: var(--mono); font-size: 12px; letter-spacing: 0.22em;
-    color: var(--grey); text-transform: uppercase;
-  }
+  header { padding: 64px 0 36px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.22em;
+    color: var(--grey); text-transform: uppercase; }
   .eyebrow b { color: var(--vermilion); font-weight: 600; }
-  h1 {
-    font-family: var(--serif); font-weight: 700;
-    font-size: clamp(34px, 6vw, 58px); line-height: 1.18;
-    letter-spacing: 0.02em; margin: 18px 0 14px; text-wrap: balance;
-  }
-  .lede { max-width: 40em; color: #454B5C; }
-  .lede em { font-style: normal; border-bottom: 2px solid var(--card); }
+  h1 { font-family: var(--serif); font-weight: 700;
+    font-size: clamp(32px, 6vw, 54px); line-height: 1.2; margin: 16px 0 14px;
+    text-wrap: balance; }
+  .lede { max-width: 42em; color: #454B5C; }
 
-  /* ---------- 管线解剖 ---------- */
-  .stage-label {
-    display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px;
-  }
-  .stage-label h2 { font-family: var(--serif); font-size: 24px; font-weight: 700; }
-  .stage-label span { font-size: 13px; color: var(--grey); }
-  .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  .stage {
-    background: #fff; border: 1px solid var(--hairline); border-radius: 10px;
-    padding: 14px 14px 12px; position: relative;
-  }
-  .stage h3 { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .stage h3 i {
-    width: 8px; height: 8px; border-radius: 50%; font-style: normal;
-    background: var(--indigo); flex: none;
-  }
-  .stage:nth-child(4) h3 i, .stage:nth-child(5) h3 i { background: var(--vermilion); }
-  .stage dl { margin-top: 10px; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; }
-  .stage dt { color: var(--grey); font-family: var(--sans); font-size: 10.5px; }
-  .stage dd { margin-bottom: 6px; }
-  .stage .zh-word { font-family: var(--serif); font-size: 17px; }
-  .arrow-note {
-    text-align: center; color: var(--grey); font-size: 12px;
-    margin-top: 10px; font-family: var(--mono);
-  }
+  /* 最小示例：输入 → 输出 */
+  .hello { display: grid; grid-template-columns: 1fr 44px 1fr; gap: 0;
+    align-items: stretch; margin-top: 26px; max-width: 720px; }
+  .hello .box { border: 1px solid var(--hairline); border-radius: 10px;
+    background: #fff; padding: 14px 18px; }
+  .hello .in .tag, .hello .out .tag { font-size: 11px; color: var(--grey);
+    font-family: var(--mono); letter-spacing: 0.1em; }
+  .hello .in p { font-family: var(--serif); font-size: 18px; margin-top: 4px; }
+  .hello .in code { font-family: var(--mono); font-size: 11px; color: var(--grey);
+    display: block; margin-top: 6px; }
+  .hello .out .word { font-family: var(--serif); font-size: 24px; font-weight: 700;
+    color: var(--vermilion); margin-top: 2px; }
+  .hello .out .rest { font-size: 12.5px; color: #454B5C; }
+  .hello .mid { display: flex; align-items: center; justify-content: center;
+    color: var(--grey); font-size: 20px; }
 
-  /* ---------- 弧线（签名） ---------- */
-  .arc-section { padding-top: 30px; }
-  .arc-frame {
-    background: linear-gradient(#fff, #fff) padding-box;
-    border: 1px solid var(--hairline); border-radius: 12px;
-    padding: 26px 18px 14px; margin-top: 6px;
-    overflow-x: auto;
-  }
+  /* ---------- 目录 ---------- */
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 0;
+    border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+  .toc a { font-size: 13px; color: #38405A; text-decoration: none;
+    border: 1px solid var(--hairline); border-radius: 99px; padding: 4px 13px;
+    background: #fff; }
+  .toc a:hover { border-color: var(--ink); }
+  .toc a:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+  .toc a b { font-family: var(--mono); font-weight: 600; color: var(--grey);
+    margin-right: 5px; }
+
+  /* ---------- 章节 ---------- */
+  .stage-label { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .stage-label .no { font-family: var(--mono); font-size: 13px; color: var(--vermilion);
+    letter-spacing: 0.1em; }
+  .stage-label h2 { font-family: var(--serif); font-size: 25px; font-weight: 700; }
+  .stage-sub { font-size: 13.5px; color: #454B5C; max-width: 46em; margin-bottom: 20px; }
+
+  /* ---------- §1 管线拆解（讲解式） ---------- */
+  .steps { display: grid; gap: 14px; }
+  .step { display: grid; grid-template-columns: 150px 1fr; gap: 18px;
+    border: 1px solid var(--hairline); border-radius: 12px; background: #fff;
+    padding: 18px 20px; }
+  .step .head { border-right: 1px solid var(--hairline); padding-right: 16px; }
+  .step .no2 { font-family: var(--mono); font-size: 11px; color: var(--grey); }
+  .step h3 { font-family: var(--serif); font-size: 19px; margin: 2px 0 6px; }
+  .step .head p { font-size: 12.5px; color: var(--grey); line-height: 1.6; }
+  .qa { display: grid; gap: 8px; }
+  .qa .row { display: grid; grid-template-columns: 1fr auto; gap: 12px;
+    align-items: baseline; border-bottom: 1px dashed var(--hairline);
+    padding-bottom: 7px; }
+  .qa .q { font-size: 14px; }
+  .qa .q small { color: var(--grey); font-family: var(--mono); font-size: 10.5px;
+    margin-left: 6px; }
+  .qa .a { font-family: var(--mono); font-size: 13px; color: var(--indigo);
+    white-space: nowrap; }
+  .qa .a.pos { color: var(--vermilion); }
+  .qa .concl { font-size: 14.5px; background: var(--card); border-radius: 8px;
+    padding: 9px 14px; margin-top: 4px; }
+  .qa .concl b { font-family: var(--serif); font-size: 16px; }
+  .qa .concl .num { color: var(--indigo); }
+
+  /* ---------- §2 情绪全景 ---------- */
+  .howto { border: 1px solid var(--hairline); border-left: 3px solid var(--vermilion);
+    border-radius: 8px; background: #fff; padding: 12px 16px; font-size: 13.5px;
+    color: #454B5C; margin-bottom: 14px; max-width: 46em; }
+  .howto b { color: var(--ink); }
+  .fambar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
+  .fam { display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    border: 1px solid var(--hairline); border-radius: 99px; padding: 4px 12px 4px 8px;
+    font-size: 12.5px; background: #fff; user-select: none; }
+  .fam i { width: 10px; height: 10px; border-radius: 50%; font-style: normal; }
+  .fam .n { font-family: var(--mono); font-size: 11px; color: var(--grey); }
+  .fam.on { border-color: var(--ink); background: var(--card); }
+  .axes { display: flex; gap: 8px; margin-left: auto; }
+  .axes button { font: 12px/1 var(--sans); padding: 6px 12px; border-radius: 99px;
+    border: 1px solid var(--hairline); background: #fff; color: var(--ink); cursor: pointer; }
+  .axes button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .axes button:focus-visible, .fam:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+  .space-frame { border: 1px solid var(--hairline); border-radius: 12px; background: #fff;
+    padding: 18px 12px 8px; margin-top: 10px; overflow-x: auto; }
+  #space { width: 100%; height: auto; display: block; min-width: 760px; }
+  #space circle { cursor: pointer; }
+  #space circle:hover { stroke: var(--ink); stroke-width: 1.5; }
+  .detail { min-height: 52px; border: 1px dashed var(--hairline); border-radius: 8px;
+    margin-top: 10px; padding: 9px 14px; font-size: 13px; color: #454B5C;
+    display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+  .detail b { font-family: var(--serif); font-size: 17px; color: var(--ink); }
+  .detail .num { color: var(--indigo); }
+  .famtables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .famtbl { border: 1px solid var(--hairline); border-radius: 10px; background: #fff; padding: 14px 16px 10px; }
+  .famtbl h4 { font-size: 13.5px; display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+  .famtbl h4 i { width: 9px; height: 9px; border-radius: 50%; font-style: normal; align-self: center; }
+  .famtbl .what { font-size: 11.5px; color: var(--grey); margin-bottom: 8px; }
+  .famtbl ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 5px 6px; }
+  .famtbl li { font-size: 12.5px; border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 2px 9px; background: var(--paper); }
+  .famtbl li span { color: var(--grey); font-family: var(--mono); font-size: 10.5px; margin-left: 4px; }
+
+  /* ---------- §3 事件类型 ---------- */
+  .evtypes { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .evt { border: 1px solid var(--hairline); border-radius: 10px; background: #fff; padding: 12px 14px 10px; }
+  .evt .code { font-family: var(--mono); font-size: 11px; color: var(--grey); letter-spacing: 0.08em; }
+  .evt .code b { color: var(--ink); font-size: 13.5px; margin-left: 6px; }
+  .evt p { font-size: 12.5px; color: #454B5C; margin-top: 5px; line-height: 1.55; }
+  .evt .eg { font-size: 12px; color: var(--grey); margin-top: 5px;
+    border-top: 1px dashed var(--hairline); padding-top: 5px; }
+  .evt .eg::before { content: "例 "; font-family: var(--mono); font-size: 10px; color: var(--vermilion); }
+
+  /* ---------- §4 弧线 ---------- */
+  .arc-frame { border: 1px solid var(--hairline); border-radius: 12px; background: #fff;
+    padding: 26px 18px 14px; margin-top: 6px; overflow-x: auto; }
   #arc { width: 100%; height: auto; display: block; min-width: 760px; }
-  .legend {
-    display: flex; flex-wrap: wrap; gap: 20px; margin-top: 14px;
-    font-size: 12.5px; color: #454B5C; align-items: center;
-  }
+  .legend { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 14px;
+    font-size: 12.5px; color: #454B5C; align-items: center; }
   .legend .key { display: inline-flex; align-items: center; gap: 7px; }
   .legend .swatch { width: 18px; height: 3px; border-radius: 2px; }
   .legend .dot { width: 9px; height: 9px; border-radius: 50%; }
-  .peakend-note {
-    margin-top: 16px; font-size: 13px; color: #454B5C;
-    background: var(--card); border-radius: 8px; padding: 10px 14px;
-  }
+  .peakend-note { margin-top: 16px; font-size: 13px; color: #454B5C;
+    background: var(--card); border-radius: 8px; padding: 10px 14px; }
   .peakend-note b { font-family: var(--mono); }
 
-  /* ---------- 语域 ---------- */
+  /* ---------- §5 语域 ---------- */
   .registers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .reg {
-    border: 1px solid var(--hairline); border-radius: 10px; padding: 18px 18px 14px;
-    background: #fff;
-  }
-  .reg .tag {
-    font-family: var(--mono); font-size: 11px; color: var(--grey);
-    letter-spacing: 0.12em; text-transform: uppercase;
-  }
+  .reg { border: 1px solid var(--hairline); border-radius: 10px; padding: 18px 18px 14px; background: #fff; }
+  .reg .tag { font-family: var(--mono); font-size: 11px; color: var(--grey);
+    letter-spacing: 0.12em; text-transform: uppercase; }
   .reg .scene { font-size: 12.5px; color: #454B5C; margin: 2px 0 12px; }
-  .reg .say {
-    font-family: var(--serif); font-size: 21px; line-height: 1.45; min-height: 3em;
-  }
+  .reg .say { font-family: var(--serif); font-size: 21px; line-height: 1.45; min-height: 3em; }
   .reg .chips { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .reg .chips span {
-    font-size: 12px; background: var(--card); border-radius: 99px;
-    padding: 2px 10px; color: #38405A;
-  }
+  .reg .chips span { font-size: 12px; background: var(--card); border-radius: 99px;
+    padding: 2px 10px; color: #38405A; }
   .reg.hi { border-color: var(--vermilion); border-width: 1.5px; }
 
-  /* ---------- 机制 ---------- */
+  /* ---------- §6 机制 ---------- */
   .mech { display: grid; grid-template-columns: 5fr 4fr; gap: 14px; }
-  .panel {
-    border: 1px solid var(--hairline); border-radius: 10px; background: #fff;
-    padding: 20px 20px 16px; overflow-x: auto;
-  }
+  .panel { border: 1px solid var(--hairline); border-radius: 10px; background: #fff;
+    padding: 20px 20px 16px; overflow-x: auto; }
   .panel svg { min-width: 400px; }
   .panel h3 { font-family: var(--serif); font-size: 18px; margin-bottom: 4px; }
   .panel .sub { font-size: 12.5px; color: var(--grey); margin-bottom: 14px; }
@@ -129,74 +183,23 @@
   .factlist b { font-family: var(--mono); font-size: 15px; color: var(--vermilion); }
   .src { font-size: 11.5px; color: var(--grey); margin-top: 10px; line-height: 1.6; }
 
-  /* ---------- 事件类型 ---------- */
-  .evtypes { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
-  .evt {
-    border: 1px solid var(--hairline); border-radius: 10px; background: #fff;
-    padding: 12px 14px 10px;
-  }
-  .evt .code {
-    font-family: var(--mono); font-size: 11px; color: var(--grey); letter-spacing: 0.08em;
-  }
-  .evt .code b { color: var(--ink); font-size: 13px; margin-left: 6px; }
-  .evt p { font-size: 12.5px; color: #454B5C; margin-top: 6px; line-height: 1.55; }
-
-  /* ---------- 情绪全景 ---------- */
-  .fambar { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; }
-  .fam {
-    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
-    border: 1px solid var(--hairline); border-radius: 99px; padding: 4px 12px 4px 8px;
-    font-size: 12.5px; background: #fff; user-select: none;
-  }
-  .fam i { width: 10px; height: 10px; border-radius: 50%; font-style: normal; }
-  .fam .n { font-family: var(--mono); font-size: 11px; color: var(--grey); }
-  .fam.on { border-color: var(--ink); background: var(--card); }
-  .fam.off { opacity: 0.4; }
-  .axes { display: flex; gap: 8px; margin-left: auto; }
-  .axes button {
-    font: 12px/1 var(--sans); padding: 6px 12px; border-radius: 99px;
-    border: 1px solid var(--hairline); background: #fff; color: var(--ink); cursor: pointer;
-  }
-  .axes button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .axes button:focus-visible, .fam:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
-  #space { width: 100%; height: auto; display: block; min-width: 760px; }
-  .space-frame { border: 1px solid var(--hairline); border-radius: 12px; background: #fff;
-    padding: 18px 12px 8px; margin-top: 10px; overflow-x: auto; }
-
-  /* 家族清单 */
-  .famtables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-  .famtbl { border: 1px solid var(--hairline); border-radius: 10px; background: #fff; padding: 14px 16px 10px; }
-  .famtbl h4 { font-size: 13.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .famtbl h4 i { width: 9px; height: 9px; border-radius: 50%; font-style: normal; }
-  .famtbl h4 span { color: var(--grey); font-weight: 400; font-size: 11.5px; font-family: var(--mono); }
-  .famtbl ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 5px 6px; }
-  .famtbl li {
-    font-size: 12.5px; border: 1px solid var(--hairline); border-radius: 6px;
-    padding: 2px 9px; background: var(--paper);
-  }
-  .famtbl li span { color: var(--grey); font-family: var(--mono); font-size: 10.5px; margin-left: 4px; }
-
-  /* ---------- footer ---------- */
-  footer {
-    border-top: 1px solid var(--hairline); margin-top: 30px; padding: 26px 0 46px;
+  footer { border-top: 1px solid var(--hairline); margin-top: 30px; padding: 26px 0 46px;
     font-size: 12.5px; color: var(--grey); display: flex; flex-wrap: wrap;
-    gap: 8px 28px; justify-content: space-between;
-  }
+    gap: 8px 28px; justify-content: space-between; }
   footer .num { color: var(--ink); }
 
-  /* ---------- 响应 ---------- */
   @media (max-width: 860px) {
-    .pipeline { grid-template-columns: 1fr 1fr; }
-    .stage:nth-child(5) { grid-column: span 2; }
+    .step { grid-template-columns: 1fr; }
+    .step .head { border-right: none; border-bottom: 1px solid var(--hairline);
+      padding: 0 0 10px; }
+    .hello { grid-template-columns: 1fr; gap: 8px; }
+    .hello .mid { transform: rotate(90deg); padding: 2px 0; }
     .mech { grid-template-columns: 1fr; }
     .registers { grid-template-columns: 1fr; }
     .reg .say { min-height: 0; }
-    header { padding-top: 52px; }
-    section { padding: 40px 0; }
-  }
-  @media (max-width: 480px) {
-    .pipeline { grid-template-columns: 1fr; }
-    .stage:nth-child(5) { grid-column: auto; }
+    .famtables { grid-template-columns: 1fr; }
+    header { padding-top: 48px; }
+    section { padding: 38px 0; }
   }
 </style>
 </head>
@@ -206,70 +209,86 @@
 <header>
   <div class="eyebrow">ai-emotion-os · <b>Python 库</b> · v0.7.0</div>
   <h1>情绪引擎全景</h1>
-  <p class="lede">基于评价理论的可计算情绪引擎：输入结构化事件，经
-  <em>评价 → 生成 → 动力学 → 表达</em>四个阶段，输出中文情绪词与 4D 坐标。
-  本页数据由一段八事件示例叙事经引擎计算生成。</p>
+  <p class="lede">一个可计算的情绪引擎：给它一件事，它输出这件事会引发什么情绪、有多强、
+  持续多久、以及用哪个中文词说出来。理论基础是心理学的评价理论——情绪不是事件的直接结果，
+  而是主体对事件的<b>解读</b>决定的。</p>
 </header>
 
-<section id="evtypes-sec">
-  <div class="stage-label">
-    <h2>事件类型</h2><span>11 类输入事件（调研 §2.5 完备清单）——每个事件至少归入一类</span>
-  </div>
-  <div class="evtypes" id="evtypes"></div>
-</section>
+<nav class="toc" aria-label="章节目录">
+  <a href="#space-sec"><b>1</b>情绪类别列表</a>
+  <a href="#evtypes-sec"><b>2</b>事件类型列表</a>
+  <a href="#how"><b>3</b>引擎如何工作</a>
+  <a href="#arc-sec"><b>4</b>情绪随时间演化</a>
+  <a href="#reg-sec"><b>5</b>同一情绪的不同说法</a>
+  <a href="#mech-sec"><b>6</b>数字的出处</a>
+</nav>
+
+
 
 <section id="space-sec">
-  <div class="stage-label">
-    <h2>情绪类别全景</h2><span>88 个类别 · 11 家族 · 各类有 4D 原型与行动倾向——点家族聚焦、再点恢复全选</span>
-  </div>
-  <div class="fambar" id="fambar"></div>
-  <div class="space-frame">
-    <svg id="space" role="img" aria-label="88 个情绪类别在效价-唤醒（或支配-唤醒）平面的分布散点，按家族着色"></svg>
+  <div class="stage-label"><span class="no">§1</span><h2>引擎认识的所有情绪</h2></div>
+  <p class="stage-sub">引擎内置 <b class="num">88</b> 个情绪类别，分属 11 个家族。每个类别有两个坐标：
+  让人<b>舒服还是难受</b>（效价，−1 到 +1）、让人<b>激动还是平静</b>（唤醒，0 到 1）。</p>
+  <div class="howto">
+    <b>怎么看这张图：</b>横轴越右越舒服（左负右正）、纵轴越上越激动。
+    右上角是「狂喜、胜利感」这类又舒服又激动的情绪，左上角是「暴怒、恐慌」，
+    底部是「安宁、放松」。<b>点击任意一个点</b>可查看它的英文对照、行动倾向与持续时间；
+    点击下方家族按钮可以只看一个家族，横轴还能切换成「支配感」（谁占上风）。
   </div>
   <div class="famtables" id="famtables"></div>
-  <div class="src">家族划分与 4D 原型取自调研 §3.3 情绪家族与 §6.2 主对照表；
-    平面横轴可切换（效价 V / 支配 D），纵轴为唤醒 A；括号内数字为动力学半衰期（分钟，部分有文献出处，见架构合同）。</div>
+  <div class="fambar" id="fambar"></div>
+  <div class="space-frame">
+    <svg id="space" role="img" aria-label="88 个情绪类别在效价-唤醒（或支配-唤醒）平面的分布散点，按家族着色，可点击查看详情"></svg>
+  </div>
+  <div class="detail" id="detail">点击图中的一个点，这里会显示该情绪的详细信息。</div><div class="src">家族划分与坐标原型取自调研 §3.3 情绪家族与 §6.2 主对照表；
+    词后括号内数字为该情绪的半衰期（分钟，部分有文献出处，见架构合同）。</div>
 </section>
 
-<section id="pipeline-sec">
-  <div class="stage-label">
-    <h2>管线各阶段</h2><span>第一幕事件（反派当众羞辱主角）的实际中间产物</span>
-  </div>
-  <div class="pipeline" id="pipeline"></div>
-  <div class="arrow-note">以上为第一幕事件的实际处理结果</div>
+<section id="evtypes-sec">
+  <div class="stage-label"><span class="no">§2</span><h2>输入的事件类型</h2></div>
+  <p class="stage-sub">引擎的输入是结构化事件，分 11 类——任何一件事至少归入一类，
+  归入哪类决定了它走哪条评价路径（比如「违范」会问道德问题、「联结」会问关系亲疏）。</p>
+  <div class="evtypes" id="evtypes"></div>
+</section>
+<section id="how">
+  <div class="stage-label"><span class="no">§3</span><h2>引擎如何工作</h2></div>
+  <p class="stage-sub">引擎分五步把一件事变成情绪，全程可检查。下面用同一个例子走一遍：
+  <b>「主管当众抢走了小林的方案署名」</b>——主角是小林，情绪是他的。每一步先说这一步在做什么，再看它算出的真实数字。</p>
+  <div class="steps" id="steps"></div>
 </section>
 
-<section class="arc-section">
-  <div class="stage-label">
-    <h2>八幕情绪弧线</h2><span>示例叙事：憋屈铺垫 → 反杀 → 和解收尾 · 词为表达层输出，线为状态层</span>
-  </div>
+<section id="arc-sec">
+  <div class="stage-label"><span class="no">§4</span><h2>情绪随时间演化</h2></div>
+  <p class="stage-sub">情绪不是一次性的：引擎为每个情绪记了半衰期（义愤消退快、怨恨拖得久），
+  还有一层慢速的「心情」和一层只记峰值与结尾的「记忆」。
+  下面是一段八幕示例叙事逐幕计算的结果——<b>每根柱子上的竖排词就是该幕的表达输出</b>，
+  红线是这段故事留给记忆的评分。</p>
   <div class="arc-frame">
     <svg id="arc" role="img" aria-label="八事件情绪弧线：每个事件的中文情绪词竖排标注，配心情与峰终记忆两条曲线"></svg>
   </div>
   <div class="legend">
-    <span class="key"><span class="swatch" style="background:var(--ink)"></span>峰终记忆评分（峰×0.5＋终值×0.5）</span>
-    <span class="key"><span class="swatch" style="background:var(--grey)"></span>心情 valence（慢速层）</span>
-    <span class="key"><span class="dot" style="background:var(--vermilion)"></span>正效价事件</span>
-    <span class="key"><span class="dot" style="background:var(--indigo)"></span>负效价事件</span>
+    <span class="key"><span class="swatch" style="background:var(--ink)"></span>记忆评分（峰值×0.5＋结尾×0.5）</span>
+    <span class="key"><span class="swatch" style="background:var(--grey)"></span>心情（慢速层，单幕撼不动）</span>
+    <span class="key"><span class="dot" style="background:var(--vermilion)"></span>舒服的事件</span>
+    <span class="key"><span class="dot" style="background:var(--indigo)"></span>难受的事件</span>
   </div>
   <div class="peakend-note" id="peakend"></div>
 </section>
 
-<section>
-  <div class="stage-label">
-    <h2>同一状态，三种说法</h2><span>语域分档 · 第八幕结束后的真实状态（formal / neutral / colloquial）</span>
-  </div>
+<section id="reg-sec">
+  <div class="stage-label"><span class="no">§5</span><h2>同一情绪的不同说法</h2></div>
+  <p class="stage-sub">表达层带语域分档：同一个内心状态，正式场合和私下吐槽用不同的词
+  （第四幕结束后的真实状态）。</p>
   <div class="registers" id="registers"></div>
 </section>
 
-<section>
-  <div class="stage-label">
-    <h2>机制与出处</h2><span>曲线由引擎函数真实计算，系数有实证来源</span>
-  </div>
+<section id="mech-sec">
+  <div class="stage-label"><span class="no">§6</span><h2>数字的出处</h2></div>
+  <p class="stage-sub">引擎里的关键数字不是拍的：能拟合的用开放数据拟合，有文献的标文献。</p>
   <div class="mech">
     <div class="panel">
       <h3>恐惧享受倒 U</h3>
-      <div class="sub">安全框架内，享受随恐惧强度先升后降；顶点 0.84 由 OSF 数据拟合得出</div>
+      <div class="sub">安全框架内（比如看恐怖片），享受随恐惧强度先升后降；顶点 0.84 由 OSF 数据拟合得出</div>
       <svg id="uu" role="img" aria-label="恐惧与享受的倒U曲线，顶点在恐惧强度0.84处"></svg>
       <div class="src">Andersen et al. 2020 鬼屋现场研究 OSF 开放数据复现拟合：
         Likert 7.55/9 → 引擎尺度 0.84（95% CI [0.59, 1.09]）；
@@ -295,38 +314,101 @@
 <script>
 const DATA = __DATA__;
 
-/* ---------- 事件类型 ---------- */
-(function renderEvTypes() {
-  document.getElementById('evtypes').innerHTML = DATA.event_types.map(t => `
-    <div class="evt"><div class="code">${t.id}<b>${t.zh}</b></div><p>${t.def}</p></div>`).join('');
+/* ---------- §3 五步拆解（讲解式） ---------- */
+(function renderSteps() {
+  const p = DATA.pipeline;
+  const a = p.appraisal;
+  document.getElementById('steps').innerHTML = `
+  <div class="step">
+    <div class="head"><span class="no2">STEP 1 / 5</span><h3>输入事件</h3>
+      <p>先告诉引擎发生了一件什么事：归入哪类、伤了什么目标。</p></div>
+    <div class="qa">
+      <div class="row"><span class="q">发生了什么<small>description</small></span><span class="a">${p.event.title}</span></div>
+      <div class="row"><span class="q">归入哪类事件<small>category</small></span><span class="a">${p.event.category}</span></div>
+      <div class="row"><span class="q">伤到主角的什么目标<small>goal_impacts</small></span>
+        <span class="a num">${JSON.stringify(p.event.goal_impacts)}</span></div>
+      <div class="concl">引擎得到：「一件<b>违范冒犯</b>，重创了主角的<b>自尊</b>目标」。</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="head"><span class="no2">STEP 2 / 5</span><h3>评价</h3>
+      <p>引擎站在主角立场连问几个问题——情绪由答案决定，不由事件本身决定。</p></div>
+    <div class="qa">
+      <div class="row"><span class="q">这事跟主角有关吗、重要吗？<small>goal_relevance</small></span><span class="a num">${a.goal_relevance}（很重要）</span></div>
+      <div class="row"><span class="q">是帮了他还是坑了他？<small>conduciveness</small></span><span class="a num">${a.conduciveness}（严重阻碍）</span></div>
+      <div class="row"><span class="q">突然吗、意外吗？<small>novelty</small></span><span class="a num">${a.novelty}</span></div>
+      <div class="row"><span class="q">来得急吗？<small>urgency</small></span><span class="a num">${a.urgency}</span></div>
+      <div class="row"><span class="q">主角有办法改变吗？<small>control</small></span><span class="a num">${a.control}</span></div>
+      <div class="concl">解读结果：<b>针对我的、重要的、无法补救的冒犯</b>——这是愤怒族的配置。</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="head"><span class="no2">STEP 3 / 5</span><h3>生成</h3>
+      <p>按评价结果点燃情绪类别，每类一个 0–1 的强度。</p></div>
+    <div class="qa">
+      ${p.generation.map(g => `
+      <div class="row"><span class="q">${g.zh}<small>${g.cat}</small></span>
+        <span class="a num">${g.intensity.toFixed(2)}</span></div>`).join('')}
+      <div class="concl">点得最旺的是<b>义愤</b>与<b>道德厌恶</b>（他不仅坑了我，还坏了规矩），
+      以及<b>委屈</b>（我有理却没处说）。</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="head"><span class="no2">STEP 4 / 5</span><h3>动力学</h3>
+      <p>情绪会消退，还会在主角身上留下两样东西：慢速的心情变化、对冒犯者的记账。</p></div>
+    <div class="qa">
+      <div class="row"><span class="q">心情被拉低了多少？<small>mood valence</small></span><span class="a num">${p.dynamics.mood_after}（只低了一点——单事件撼不动心情层）</span></div>
+      <div class="row"><span class="q">对冒犯者记了多少账？<small>charges</small></span><span class="a num">${JSON.stringify(p.dynamics.charges)}（日后他受罚，主角会「解气」）</span></div>
+      <div class="row"><span class="q">身体唤醒残留<small>arousal_residue</small></span><span class="a num">${p.dynamics.residue}</span></div>
+      <div class="concl">这笔账在第四幕兑现：反派受罚时触发<b>解气</b>与<b>爽</b>。</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="head"><span class="no2">STEP 5 / 5</span><h3>表达</h3>
+      <p>最后翻译成人话：按强度选词，多情绪并存时给混合说法。</p></div>
+    <div class="qa">
+      <div class="concl" style="margin-top:0">引擎此刻会说：<b style="font-size:19px">${p.expression.neutral}</b>
+      <span style="color:var(--grey)">（4D 效价 ${p.expression.dims.v} / 唤醒 ${p.expression.dims.a}）</span></div>
+      <div class="row"><span class="q">并列的次强情绪<small>top-3</small></span>
+        <span class="a">${p.expression.entries.map(e => `${e.word} ${e.intensity.toFixed(2)}`).join(' · ')}</span></div>
+    </div>
+  </div>`;
 })();
 
-/* ---------- 情绪类别全景 ---------- */
+/* ---------- §3 事件类型 ---------- */
+(function renderEvTypes() {
+  document.getElementById('evtypes').innerHTML = DATA.event_types.map(t => `
+    <div class="evt"><div class="code">${t.id}<b>${t.zh}</b></div>
+      <p>${t.def}</p>${t.eg ? `<div class="eg">${t.eg}</div>` : ''}</div>`).join('');
+})();
+
+/* ---------- §2 情绪全景 ---------- */
 (function renderSpace() {
   const FAM = {
-    anger:          { zh: '愤怒族',     col: '#C0392B' },
-    fear:           { zh: '恐惧族',     col: '#3E5AA8' },
-    disgust:        { zh: '厌恶族',     col: '#6B7A3A' },
-    sadness:        { zh: '悲伤族',     col: '#5E6B8C' },
-    joy:            { zh: '快乐族',     col: '#D8552B' },
-    self_conscious: { zh: '自我意识族', col: '#955E96' },
-    social_moral:   { zh: '社会道德族', col: '#B07D3E' },
-    love:           { zh: '爱族',       col: '#C96A6A' },
-    epistemic:      { zh: '认知族',     col: '#3E8C7E' },
-    aesthetic:      { zh: '审美族',     col: '#8C6D4E' },
-    prospect:       { zh: '前景族',     col: '#4E7A8C' },
+    anger:          { zh: '愤怒族',     col: '#C0392B', what: '被阻碍、被冒犯时点燃' },
+    fear:           { zh: '恐惧族',     col: '#3E5AA8', what: '面对威胁与不确定' },
+    disgust:        { zh: '厌恶族',     col: '#6B7A3A', what: '排斥身体或道德上的脏东西' },
+    sadness:        { zh: '悲伤族',     col: '#5E6B8C', what: '失去，无可挽回' },
+    joy:            { zh: '快乐族',     col: '#D8552B', what: '获得、达成、正义实现' },
+    self_conscious: { zh: '自我意识族', col: '#955E96', what: '把自己当作被审视的对象' },
+    social_moral:   { zh: '社会道德族', col: '#B07D3E', what: '见证他人的美德或卓越' },
+    love:           { zh: '爱族',       col: '#C96A6A', what: '联结发生、骤增或断裂' },
+    epistemic:      { zh: '认知族',     col: '#3E8C7E', what: '信息缺口与理解发生' },
+    aesthetic:      { zh: '审美族',     col: '#8C6D4E', what: '面对美与浩瀚' },
+    prospect:       { zh: '前景族',     col: '#4E7A8C', what: '期待可能与风险' },
   };
   const cats = DATA.categories;
   const svg = document.getElementById('space');
+  const detail = document.getElementById('detail');
   const W = 1000, H = 560, mL = 56, mR = 20, mT = 18, mB = 46;
-  let axis = 'v';   // 'v' | 'd'
+  let axis = 'v';
   const on = new Set(Object.keys(FAM));
 
+  const x = v => mL + (W - mL - mR) * (v + 1) / 2;
+  const y = a => mT + (H - mT - mB) * (1 - a);
+
   function draw() {
-    const x = v => mL + (W - mL - mR) * (v + 1) / 2;
-    const y = a => mT + (H - mT - mB) * (1 - a);
     let s = '';
-    // 网格与轴
     for (const g of [-1, -0.5, 0, 0.5, 1]) {
       s += `<line x1="${x(g)}" y1="${mT}" x2="${x(g)}" y2="${H - mB}" stroke="#EDF0F5"/>`;
       s += `<text x="${x(g)}" y="${H - mB + 16}" text-anchor="middle" font-size="10"
@@ -334,14 +416,13 @@ const DATA = __DATA__;
     }
     s += `<line x1="${x(0)}" y1="${mT}" x2="${x(0)}" y2="${H - mB}" stroke="#D9DDE6"/>`;
     s += `<text x="${(W + mL) / 2}" y="${H - 8}" text-anchor="middle" font-size="11.5"
-          fill="#878C99">${axis === 'v' ? '效价 valence（−1 负 → +1 正）' : '支配 dominance（−1 被支配 → +1 支配）'}</text>`;
+          fill="#878C99">${axis === 'v' ? '难受 −1 ← 效价 valence → +1 舒服' : '被支配 −1 ← 支配 dominance → +1 占上风'}</text>`;
     s += `<text x="${mL - 34}" y="${(H - mB + mT) / 2}" text-anchor="middle" font-size="11.5"
-          fill="#878C99" transform="rotate(-90 ${mL - 34} ${(H - mB + mT) / 2})">唤醒 arousal</text>`;
+          fill="#878C99" transform="rotate(-90 ${mL - 34} ${(H - mB + mT) / 2})">激动 ↑ 唤醒</text>`;
     for (const a of [0, 0.5, 1]) {
       s += `<text x="${mL - 8}" y="${y(a) + 4}" text-anchor="end" font-size="10"
             fill="#878C99" font-family="Consolas,monospace">${a.toFixed(1)}</text>`;
     }
-    // 点与标签（选中家族高亮，未选中淡出；标签 12 相位散开减少重叠）
     const focus = on.size < Object.keys(FAM).length;
     const DX = [-10, 0, 10], DY = [-13, 15, -25, 27];
     cats.forEach((c, i) => {
@@ -350,16 +431,30 @@ const DATA = __DATA__;
       const cx = x(c[axis]), cy = y(c.a);
       const op = dim ? 0.10 : (focus ? 1 : 0.88);
       const dx = DX[i % 3], dy = DY[(i * 7) % 4];
-      s += `<circle cx="${cx}" cy="${cy}" r="${dim ? 3 : 4}" fill="${f.col}" opacity="${op}"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="${dim ? 3 : 4.5}" fill="${f.col}" opacity="${op}"
+            data-id="${c.id}"><title>${c.zh}（${c.en}）</title></circle>`;
       if (!dim) {
-        s += `<text x="${cx + dx}" y="${cy + dy}" text-anchor="middle" font-size="${focus ? 12 : 10.5}"
+        s += `<text x="${cx + dx}" y="${cy + dy}" text-anchor="middle" font-size="${focus ? 12.5 : 10.5}"
               fill="${focus ? f.col : '#454B5C'}" opacity="${focus ? 1 : 0.85}"
-              font-family="'Songti SC','SimSun',serif">${c.zh}</text>`;
+              font-family="'Songti SC','SimSun',serif" pointer-events="none">${c.zh}</text>`;
       }
     });
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.innerHTML = s;
   }
+
+  // 点击点 → 详情
+  svg.addEventListener('click', e => {
+    const c = e.target.closest('circle'); if (!c) return;
+    const cat = cats.find(k => k.id === c.dataset.id); if (!cat) return;
+    const f = FAM[cat.family];
+    detail.innerHTML = `<b>${cat.zh}</b><span>${cat.en}</span>
+      <span style="color:${f.col}">${f.zh}</span>
+      <span>舒服/难受 <span class="num">${cat.v > 0 ? '+' : ''}${cat.v}</span></span>
+      <span>激动程度 <span class="num">${cat.a}</span></span>
+      <span>行动倾向：${cat.tendency || '—'}</span>
+      <span>半衰期 <span class="num">${cat.half_life ?? '—'}</span> 分钟</span>`;
+  });
 
   // 家族条 + 轴切换
   const bar = document.getElementById('fambar');
@@ -368,21 +463,17 @@ const DATA = __DATA__;
       <i style="background:${f.col}"></i>${f.zh}<span class="n">${DATA.families[k] || 0}</span>
     </button>`).join('') + `
     <span class="axes">
-      <button class="on" data-ax="v">效价 V</button>
-      <button data-ax="d">支配 D</button>
+      <button class="on" data-ax="v">横轴：舒服/难受</button>
+      <button data-ax="d">横轴：支配感</button>
     </span>`;
   bar.addEventListener('click', e => {
     const fb = e.target.closest('.fam'), ab = e.target.closest('axes button') || e.target.closest('.axes button');
     if (fb) {
       const k = fb.dataset.fam;
-      const focusAll = on.size === Object.keys(FAM).length;   // 当前全选 → 独占聚焦 k
-      if (focusAll) {
-        on.clear(); on.add(k);
-      } else if (on.has(k) && on.size === 1) {
-        Object.keys(FAM).forEach(f => on.add(f));             // 已聚焦 k → 再点恢复全选
-      } else {
-        on.clear(); on.add(k);                                 // 聚焦切换
-      }
+      const focusAll = on.size === Object.keys(FAM).length;
+      if (focusAll) { on.clear(); on.add(k); }
+      else if (on.has(k) && on.size === 1) { Object.keys(FAM).forEach(f => on.add(f)); }
+      else { on.clear(); on.add(k); }
       bar.querySelectorAll('.fam').forEach(b => {
         const isOn = on.has(b.dataset.fam);
         b.classList.toggle('on', isOn);
@@ -397,76 +488,45 @@ const DATA = __DATA__;
   });
   draw();
 
-  // 家族清单（全部 88 类的中文名 + 半衰期）
+  // 家族清单
   const tables = document.getElementById('famtables');
   tables.innerHTML = Object.entries(FAM).map(([k, f]) => {
     const list = cats.filter(c => c.family === k);
     return `<div class="famtbl">
-      <h4><i style="background:${f.col}"></i>${f.zh}
-        <span>${list.length} 类</span></h4>
+      <h4><i style="background:${f.col}"></i>${f.zh}<span style="color:var(--grey);font-weight:400;font-size:11.5px;font-family:var(--mono)">${list.length} 类</span></h4>
+      <div class="what">${f.what}</div>
       <ul>${list.map(c =>
         `<li>${c.zh}${c.half_life != null ? `<span>${c.half_life}</span>` : ''}</li>`).join('')}</ul>
     </div>`;
   }).join('');
 })();
 
-/* ---------- 管线解剖 ---------- */
-(function renderPipeline() {
-  const p = DATA.pipeline, el = document.getElementById('pipeline');
-  const fmt = (o) => Object.entries(o).map(([k, v]) =>
-    `<dt>${k}</dt><dd class="num">${v}</dd>`).join('');
-  const genWords = p.generation.map(g => `<span class="zh-word">${g.zh}</span>`).join(' · ');
-  el.innerHTML = `
-    <div class="stage"><h3><i></i>事件</h3><dl>
-      <dt>category</dt><dd>${p.event.category}</dd>
-      <dt>goal_impacts</dt><dd class="num">${JSON.stringify(p.event.goal_impacts)}</dd>
-      <dt>moral.severity</dt><dd class="num">${p.event.severity}</dd></dl></div>
-    <div class="stage"><h3><i></i>评价</h3><dl>${fmt(p.appraisal)}</dl></div>
-    <div class="stage"><h3><i></i>生成</h3><dl>
-      <dt>激活 top</dt><dd>${genWords}</dd>
-      <dt>强度</dt><dd class="num">${p.generation.map(g => g.intensity).join(' / ')}</dd></dl></div>
-    <div class="stage"><h3><i></i>动力学</h3><dl>
-      <dt>心情 valence</dt><dd class="num">${p.dynamics.mood_after}</dd>
-      <dt>唤醒残余</dt><dd class="num">${p.dynamics.residue}</dd>
-      <dt>对象记账</dt><dd class="num">${JSON.stringify(p.dynamics.charges)}</dd></dl></div>
-    <div class="stage"><h3><i></i>表达</h3><dl>
-      <dt>输出</dt><dd><span class="zh-word">${p.expression.neutral}</span></dd>
-      <dt>4D V/A</dt><dd class="num">${p.expression.dims.v} / ${p.expression.dims.a}</dd></dl></div>`;
-})();
-
-/* ---------- 弧线（签名） ---------- */
+/* ---------- §4 弧线 ---------- */
 (function renderArc() {
   const svg = document.getElementById('arc');
   const W = 1000, H = 420, mL = 46, mR = 18, mT = 30, mB = 64;
   const ev = DATA.events, n = ev.length;
   const x = i => mL + (W - mL - mR) * (i + 0.5) / n;
-  const y = v => mT + (H - mT - mB) * (1 - (v + 1) / 2);   // valence -1..1 → 纵向
+  const y = v => mT + (H - mT - mB) * (1 - (v + 1) / 2);
   const C = { pos: getCss('--vermilion'), neg: getCss('--indigo'),
               ink: getCss('--ink'), grey: getCss('--grey'), hair: getCss('--hairline') };
   function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
   let s = '';
-  // 基线与网格
   s += `<line x1="${mL}" y1="${y(0)}" x2="${W - mR}" y2="${y(0)}" stroke="${C.hair}" stroke-width="1"/>`;
-  s += `<text x="${mL - 8}" y="${y(1) + 4}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">+1</text>`;
-  s += `<text x="${mL - 8}" y="${y(-1) + 4}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">−1</text>`;
-
-  // 心情线（细灰）
+  s += `<text x="${mL - 8}" y="${y(1) + 4}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="Consolas,monospace">+1</text>`;
+  s += `<text x="${mL - 8}" y="${y(-1) + 4}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="Consolas,monospace">−1</text>`;
   s += path(ev.map((e, i) => [x(i), y(e.mood)]), C.grey, 1.5, [4, 4]);
-  // 峰终记忆线（主粗，分段按相邻点均值着色）
   for (let i = 0; i < n - 1; i++) {
     const v = (ev[i].memory + ev[i + 1].memory) / 2;
     s += `<line x1="${x(i)}" y1="${y(ev[i].memory)}" x2="${x(i + 1)}" y2="${y(ev[i + 1].memory)}"
           stroke="${v >= 0 ? C.pos : C.neg}" stroke-width="3" stroke-linecap="round" opacity="0.85"/>`;
   }
-
   ev.forEach((e, i) => {
     const cx = x(i), top = e.words[0];
     const pos = e.dims.valence >= 0;
     const col = pos ? C.pos : C.neg;
-    // 节点圆
     s += `<circle cx="${cx}" cy="${y(e.memory)}" r="5.5" fill="${col}"/>`;
-    // 竖排主词（逐字竖排，宋体，字号∝强度）；强度数字在圆点下方，避免与词重叠
     if (top) {
       const fs = 19 + 13 * Math.min(1, top.intensity);
       const chars = [...top.word];
@@ -479,15 +539,13 @@ const DATA = __DATA__;
               fill="${col}">${ch}</text>`;
       });
       s += `<text x="${cx + 9}" y="${y(e.memory) + 4}" text-anchor="start" font-size="10"
-            fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">${top.intensity.toFixed(2)}</text>`;
+            fill="${C.grey}" font-family="Consolas,monospace">${top.intensity.toFixed(2)}</text>`;
     }
-    // 事件标题（底部，横排）
     s += `<text x="${cx}" y="${H - mB + 26}" text-anchor="middle" font-size="12.5"
-          fill="${C.ink}" >${e.title}</text>`;
+          fill="${C.ink}" font-family="var(--sans)">${e.title}</text>`;
     s += `<text x="${cx}" y="${H - mB + 44}" text-anchor="middle" font-size="10"
-          fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">t+${e.dt >= 1440 ? (e.dt/1440)+'d' : e.dt+'m'}</text>`;
+          fill="${C.grey}" font-family="Consolas,monospace">t+${e.dt >= 1440 ? (e.dt/1440)+'d' : e.dt+'m'}</text>`;
   });
-
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = s;
   function path(pts, stroke, w, dash) {
@@ -495,26 +553,20 @@ const DATA = __DATA__;
       fill="none" stroke="${stroke}" stroke-width="${w}"
       ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linejoin="round"/>`;
   }
-
-  // 峰终注记
-  const m = DATA.meta, last = ev[ev.length - 1];
-  const peakEv = ev.reduce((a, b) => Math.abs(b.memory) > Math.abs(a.memory) ? b : a);
+  const last = ev[ev.length - 1];
   document.getElementById('peakend').innerHTML =
-    `峰终定律（时长忽视）：记忆评分 = <b>峰值×0.5 + 终值×0.5</b>。
-     本弧线终值 <b class="num">${last.memory > 0 ? '+' : ''}${last.memory.toFixed(2)}</b>（HE 收尾 → 正分），
-     当前心情 valence <b class="num">${last.mood > 0 ? '+' : ''}${last.mood.toFixed(2)}</b>——
-     单次事件对心情层的影响很小（慢速 EMA）。`;
+    `记忆评分 = <b>峰值×0.5 + 结尾×0.5</b>：这段故事终值 <b class="num">${last.memory > 0 ? '+' : ''}${last.memory.toFixed(2)}</b>
+    （圆满收尾 → 留下正分）。注意心情线（虚线）几乎没动——单幕事件影响不了慢速层（慢速 EMA）。`;
 })();
 
-/* ---------- 语域 ---------- */
+/* ---------- §5 语域 ---------- */
 (function renderRegisters() {
   const R = DATA.registers, meta = [
-    ['formal', '对外正式 · 书面', '汇报、悼词、通稿'],
-    ['neutral', '通用（默认）', '记录、说明文'],
+    ['formal', '对外正式 · 书面', '汇报、通稿'],
+    ['neutral', '通用（默认）', '记录、说明'],
     ['colloquial', '对内私下 · 口语', '吐槽、朋友圈'],
   ];
-  const el = document.getElementById('registers');
-  el.innerHTML = meta.map(([k, name, scene], i) => `
+  document.getElementById('registers').innerHTML = meta.map(([k, name, scene], i) => `
     <div class="reg ${i === 0 ? 'hi' : ''}">
       <div class="tag">${k}</div>
       <div class="scene">${name} · ${scene}</div>
@@ -524,7 +576,7 @@ const DATA = __DATA__;
     </div>`).join('');
 })();
 
-/* ---------- 倒 U ---------- */
+/* ---------- §6 倒U + 事实 ---------- */
 (function renderUU() {
   const svg = document.getElementById('uu');
   const W = 460, H = 250, mL = 40, mR = 14, mT = 16, mB = 34;
@@ -534,39 +586,32 @@ const DATA = __DATA__;
   const C = { ink: '#1B2030', grey: '#878C99', ver: '#D8552B', hair: '#D9DDE6' };
   const peak = DATA.meta.peak;
   let s = '';
-  // 轴
   s += `<line x1="${mL}" y1="${y(0)}" x2="${W - mR}" y2="${y(0)}" stroke="${C.hair}"/>`;
   s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${y(0)}" stroke="${C.hair}"/>`;
-  // 曲线下面积
   s += `<path d="M${pts.map(p => `${x(p.fear).toFixed(1)},${y(p.enjoyment).toFixed(1)}`).join('L')}L${x(1)},${y(0)}L${x(0)},${y(0)}Z"
         fill="${C.ver}" opacity="0.07"/>`;
-  // 曲线
   s += `<path d="M${pts.map(p => `${x(p.fear).toFixed(1)},${y(p.enjoyment).toFixed(1)}`).join('L')}"
         fill="none" stroke="${C.ver}" stroke-width="2.5" stroke-linejoin="round"/>`;
-  // 顶点
   const pk = pts.find(p => p.fear >= peak);
   s += `<line x1="${x(peak)}" y1="${y(pk.enjoyment)}" x2="${x(peak)}" y2="${y(0)}"
         stroke="${C.grey}" stroke-dasharray="3 4"/>`;
   s += `<circle cx="${x(peak)}" cy="${y(pk.enjoyment)}" r="4.5" fill="${C.ver}"/>`;
   s += `<text x="${x(peak) + 8}" y="${y(pk.enjoyment) - 8}" font-size="12" fill="${C.ink}"
-        font-family="SF Mono,Cascadia Mono,Consolas,monospace">peak = 0.84</text>`;
-  // 旧自设值 0.30 标记
+        font-family="Consolas,monospace">peak = 0.84</text>`;
   s += `<circle cx="${x(0.30)}" cy="${y(pts[30].enjoyment)}" r="3.5" fill="none"
         stroke="${C.grey}" stroke-width="1.5"/>`;
   s += `<text x="${x(0.30) + 7}" y="${y(pts[30].enjoyment) + 16}" font-size="10.5" fill="${C.grey}"
-        font-family="SF Mono,Cascadia Mono,Consolas,monospace">v0.2 自设 0.30</text>`;
-  // 轴标
-  s += `<text x="${(W + mL) / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${C.grey}">恐惧强度（引擎尺度）</text>`;
-  s += `<text x="${mL - 6}" y="${mT + 10}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">享受</text>`;
+        font-family="Consolas,monospace">v0.2 自设 0.30</text>`;
+  s += `<text x="${(W + mL) / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${C.grey}">恐惧强度</text>`;
+  s += `<text x="${mL - 6}" y="${mT + 10}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="Consolas,monospace">享受</text>`;
   for (const t of [0, 0.5, 1]) {
     s += `<text x="${x(t)}" y="${y(0) + 14}" text-anchor="middle" font-size="10"
-          fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">${t.toFixed(1)}</text>`;
+          fill="${C.grey}" font-family="Consolas,monospace">${t.toFixed(1)}</text>`;
   }
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = s;
 })();
 
-/* ---------- 事实 ---------- */
 (function renderFacts() {
   const m = DATA.meta;
   document.getElementById('facts').innerHTML = [
@@ -576,8 +621,6 @@ const DATA = __DATA__;
     `双供应商 LLM 端到端：<b>claude</b> + <b>codex</b> CLI 贯通「叙事 → 引擎 → 中文表达」`,
   ].map(t => `<div>${t}</div>`).join('');
 })();
-
-/* ---------- 首帧完整静止（无入场动画：缩略图/分享首帧即全貌） ---------- */
 </script>
 </body>
 </html>

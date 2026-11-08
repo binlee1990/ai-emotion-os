@@ -120,11 +120,27 @@ def main() -> int:
     }
 
     # ---- 5) 全量类型空间：事件类型 + 情绪类别全景 ----
-    # 事件类型（A–K）：枚举值 + docstring 中的定义句
+    # 事件类型（A–K）：枚举值 + docstring 定义句 + 生活化例子（手写内容示例，非引擎数值）
+    _EVENT_EGS = {
+        "A_loss": "挚爱的角色在结局死去；钱包丢了",
+        "B_threat": "体检报告等待复查；深夜听到异响",
+        "C_frustration": "排队的窗口突然关闭；被已读不回",
+        "D_achievement": "压哨绝杀；方案被客户点名采用",
+        "E_violation": "被插队还被推搡；上司抢走署名",
+        "F_bond": "失散亲人重逢；暧昧对象表白",
+        "G_comparison": "同事升职；刷到别人的度假照",
+        "H_novelty": "剧透前的反转；谜底揭晓的一瞬",
+        "I_aesthetic": "山顶看日出；听到副歌起鸡皮疙瘩",
+        "J_body": "跑完十公里的通透；重感冒的昏沉",
+        "K_fiction": "代入主角视角经历的一切",
+    }
     event_types = []
     for cat in EventCategory:
         doc = (cat.__doc__ or "").strip()
-        event_types.append({"id": cat.value, "zh": doc.split("：", 1)[0], "def": doc})
+        event_types.append({
+            "id": cat.value, "zh": doc.split("：", 1)[0], "def": doc,
+            "eg": _EVENT_EGS.get(cat.value, ""),
+        })
 
     # 情绪类别全量（88 类）：家族分组 + 4D 原型 + 行动倾向 + 半衰期 + 词表覆盖
     from emotion_os.core.state import FAMILY_HALF_LIFE_MIN
