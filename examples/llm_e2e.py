@@ -19,19 +19,31 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from emotion_os import AgentProfile, EmotionEngine
-from emotion_os.adapters import (
-    CLICallError,
-    CLIUnavailableError,
-    EntityResolver,
-    ParseOutcome,
-    build_extraction_prompt,
-    claude_cli_call,
-    codex_cli_call,
-    parse_event,
-)
+try:
+    from emotion_os import AgentProfile, EmotionEngine
+    from emotion_os.adapters import (
+        CLICallError,
+        CLIUnavailableError,
+        EntityResolver,
+        ParseOutcome,
+        build_extraction_prompt,
+        claude_cli_call,
+        codex_cli_call,
+        parse_event,
+    )
+except ImportError:   # 仓库内裸跑（未安装）：从仓库根解析
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from emotion_os import AgentProfile, EmotionEngine
+    from emotion_os.adapters import (
+        CLICallError,
+        CLIUnavailableError,
+        EntityResolver,
+        ParseOutcome,
+        build_extraction_prompt,
+        claude_cli_call,
+        codex_cli_call,
+        parse_event,
+    )
 
 NARRATIVE_EVENTS = [
     # 事件1：道德越界（预测：义愤/委屈族）

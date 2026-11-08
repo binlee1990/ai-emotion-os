@@ -2,6 +2,12 @@
 
 基于评价理论的「事件 → 评价 → 情绪」可计算情绪引擎（Python 库）。知识基础与理论依据见 [research/人类情绪全景调研.md](research/人类情绪全景调研.md)；设计与接口合同见 [docs/architecture-contract.md](docs/architecture-contract.md)。
 
+安装（Python ≥3.10，零运行时依赖）：
+
+```bash
+pip install -e .          # 本地可编辑安装（发布 PyPI 后可用 pip install ai-emotion-os）
+```
+
 ```python
 from emotion_os import EmotionEngine, AgentProfile
 

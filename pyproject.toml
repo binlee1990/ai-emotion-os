@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-emotion-os"
+version = "0.7.0"
+description = "基于评价理论的「事件 → 评价 → 情绪」可计算情绪引擎（类别+4D 双通道、三层动力学、中文分级词表×语域、NL→Event 适配器）"
+readme = "README.md"
+requires-python = ">=3.10"
+# 零运行时依赖（研究原型刻意边界，架构合同 §8）；
+# scripts/fit_fear_enjoyment_peak.py 的 LME 主口径可选依赖 numpy/pandas/statsmodels，
+# 零依赖 OLS 回退口径不需要（脚本 docstring 注明）。
+dependencies = []
+
+[project.optional-dependencies]
+fit = ["numpy", "pandas", "statsmodels"]   # OSF 标定复现脚本的可选口径
+
+[tool.setuptools.packages.find]
+include = ["emotion_os*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -6,17 +6,20 @@
 
 弧线设计（§5.4 爽感引擎/§3.3 十二族）：憋屈铺垫(1-2) → 转机(3-4) →
 压力回升(5) → 反杀打脸(6-7) → 亲情和解收尾(8, HE 峰终)。
-运行：python examples/demo_story.py
+运行：python examples/demo_story.py（已 pip install -e . 或在仓库根均可）
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
-from emotion_os.core.event import BondInfo, MoralInfo
+try:
+    from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
+    from emotion_os.core.event import BondInfo, MoralInfo
+except ImportError:   # 仓库内裸跑（未安装）：从仓库根解析
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
+    from emotion_os.core.event import BondInfo, MoralInfo
 
 STORY: list[tuple[str, float, Event]] = [
     ("反派当众羞辱主角", 1.0, Event(

@@ -12,7 +12,7 @@ from .core.event import AestheticInfo, BondInfo, Event, MoralInfo, SocialInfo
 from .core.types import EventCategory, Goal, Intent, OCCBranch, Personality
 from .engine import EmotionEngine, ProcessResult
 
-__version__ = "0.1.0"
+__version__ = "0.7.0"   # 与 pyproject.toml 同步（v0.2 起未同步更新，v0.7 补齐）
 
 __all__ = [
     "AestheticInfo",
