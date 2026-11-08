@@ -1,0 +1,44 @@
+{
+  "title": "ai-emotion-os v0.1：实现与场景验收",
+  "goal": {
+    "label": "事件→评价→情绪引擎可用，调研场景验证知识库可用性",
+    "exit": [
+      {"text": "python -m pytest tests/ -q 全量 0 失败", "check": "test"},
+      {"text": "≥6 个调研场景测试按 §6.2 预测断言通过（打脸/恐怖倒U/重逢对照/BE峰终/悬念复合/羡慕分流/RPE）", "check": "test"},
+      {"text": "方案栈机检门通过：grammar G3 + 引用图 G4 退出码 0", "check": "command"},
+      {"text": "fresh-context 独立复审对「实现 vs 调研主张」无 P0 意见", "check": "review"}
+    ]
+  },
+  "groups": [
+    {"id": "design", "label": "方案栈", "kind": "阶段", "exit": ["架构合同+领域规则+机检证据齐备"]},
+    {"id": "impl", "label": "核心实现", "kind": "阶段", "exit": ["emotion_os 包可导入，事件→表达管线贯通"]},
+    {"id": "verify", "label": "验收", "kind": "阶段"}
+  ],
+  "nodes": [
+    {"id": "N1", "label": "架构合同", "group": "design", "estimate": 3,
+     "exit": [{"text": "docs/architecture-contract.md 存在，含 §1 不可牺牲项/§3 参考系统模式/§4 模块 I-O 契约/§6 取舍与反例/§7 验收门", "check": "file"}]},
+    {"id": "N2", "label": "领域规则 grammar", "group": "design", "depends_on": ["N1"], "estimate": 2,
+     "exit": [{"text": "grammar_fitness_test.py --grammar docs/grammar/appraisal-grammar.yaml 退出码 0", "check": "command"}]},
+    {"id": "N3", "label": "文档引用门+README", "group": "design", "depends_on": ["N2"], "estimate": 1,
+     "exit": [{"text": "variance_diff.py --reference-graph --doc-root docs 退出码 0，README.md 链接可达", "check": "command"}]},
+    {"id": "N4", "label": "骨架+核心域模型", "group": "impl", "depends_on": ["G:design"], "estimate": 2,
+     "exit": [{"text": "emotion_os.core 提供 Event/AgentProfile/EmotionEpisode/AffectState 且可导入；tests/test_core.py 通过", "check": "test"}]},
+    {"id": "N5", "label": "评价器 SEC+OCC", "group": "impl", "depends_on": ["N4"], "estimate": 3,
+     "exit": [{"text": "AppraisalResult 含 SEC 四检查维度+归因+OCC 分支判定；tests/test_appraiser.py 通过（含低控制分流反例）", "check": "test"}]},
+    {"id": "N6", "label": "情绪生成（目录/映射/4D/强度）", "group": "impl", "depends_on": ["N5"], "estimate": 3,
+     "exit": [{"text": "类别目录 ≥50 且含中文特有词；tests/test_generation.py 与 tests/test_intensity.py 通过（grammar 声明的 2 个 intensity 测试节点存在）", "check": "test"}]},
+    {"id": "N7", "label": "动力学+调节", "group": "impl", "depends_on": ["N6"], "estimate": 2,
+     "exit": [{"text": "三层动力学+峰终记忆+Gross 重评/抑制；tests/test_dynamics.py 与 tests/test_regulation.py 通过（grammar 声明的 2 个 dynamics 测试节点存在）", "check": "test"}]},
+    {"id": "N8", "label": "表达+引擎组装", "group": "impl", "depends_on": ["N7"], "estimate": 2,
+     "exit": [{"text": "中文分级词表双通道输出；EmotionEngine.process 贯通；tests/test_expression.py 与 tests/test_engine.py 通过（grammar 声明的 expression 测试节点存在）", "check": "test"}]},
+    {"id": "N9", "label": "场景测试", "group": "verify", "depends_on": ["N8"], "estimate": 3,
+     "on_fail": "goto:N6", "max_iterations": 3,
+     "exit": [{"text": "tests/scenarios/ 下 ≥6 场景测试通过，且 grammar 声明的全部 pytest 节点存在并运行", "check": "test"}]},
+    {"id": "N10", "label": "全量回归+门复核", "group": "verify", "depends_on": ["N9"], "estimate": 1,
+     "exit": [{"text": "python -m pytest tests/ -q 全量 0 失败", "check": "test"},
+              {"text": "G3/G4 机检门在最终文档上重跑退出码 0", "check": "command"}]},
+    {"id": "N11", "label": "独立复审", "group": "verify", "depends_on": ["N10"], "estimate": 2,
+     "exec": {"mode": "main", "reviewer": "fresh"},
+     "exit": [{"text": "fresh-context 复审子代理返回复审结论且无 P0 意见", "check": "review"}]}
+  ]
+}

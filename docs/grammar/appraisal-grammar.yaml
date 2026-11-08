@@ -1,0 +1,134 @@
+# ai-emotion-os 领域规则（设计层合同）
+# 来源：research/人类情绪全景调研.md（引用章节见各条 description）；架构合同 docs/architecture-contract.md §5。
+# formal_check 策略：行为可由 pytest 数值/结构断言承载的规则声明 pytest:<nodeid>（该测试属本交付，缺测即 V4 失败）；
+# 激活阈值标定与族边界属人工语义判断的 3 条（R-APP-01/03/05）标 manual，由 V6 独立复审承担人工合同。
+rules:
+  - rule_id: R-APP-01
+    description: >
+      愤怒配置（调研§2.1 Scherer 配置表）：高相关 + 他人故意归因 + 阻碍高优先目标 + 高控制 → 激活愤怒族；
+      控制感低时同一配置应转向恐惧/悲伤（调研§2.5 C：觉得能改变→愤怒；不能→恐惧/悲伤）。
+    formal_check: manual
+    manual_reason: 语义映射规则，正反例为评价配置；行为判定由 tests/test_appraiser.py 与 tests/scenarios/ 断言。
+    valid_examples:
+      - "被同事故意抢走项目功劳：relevance=0.9, causality=他人+deliberate, conduciveness=-0.8, control=0.7 → anger 激活>0.6"
+      - "排队被陌生人插队并推搡：relevance=0.6, causality=他人+deliberate, conduciveness=-0.5, control=0.8 → anger(挫败低强度档)激活"
+    edge_or_counter:
+      - example: "体检报告待复查：relevance=0.9, conduciveness=-0.7, control=0.1, probability=0.5"
+        counter: 若仍激活愤怒则违反低控制分流——正确输出为焦虑（不确定+低控制），错误输出会把威胁场景误报为愤怒
+
+  - rule_id: R-APP-02
+    description: >
+      解气生成（调研§2.5 E、§1.4 de Quervain 2004 利他惩罚纹状体奖赏）：解气 = 先前存在义愤/愤怒 + 违规者受到相称惩罚；
+      无先前义愤或惩罚对象非违规者时不得产生解气（后者应产生内疚，§2.3 OCC 复合）。
+    formal_check: pytest:tests/scenarios/test_face_slap.py::TestFaceSlapPhase::test_no_prior_indignation_no_relief
+    formal_check_note: 场景断言三连（有前置+对象匹配→解气；无前置→无解气；罚错对象→无解气而内疚，test_wrong_punishment_target_no_relief_but_guilt）。
+    valid_examples:
+      - "憋屈期(被反派羞辱, indignation=0.7) → 反派当众伏诛(punishment=0.9, 相称) → 解气激活>0.6 且高于残余愤怒"
+      - "目睹作弊者获利(indignation=0.5) → 作弊者被取消成绩 → 解气+为他高兴(正义恢复)复合激活"
+    edge_or_counter:
+      - example: "无前置义愤，直接看到陌生人被惩罚"
+        counter: 若产生解气则违反「先前义愤为必要条件」——正确输出接近怜悯或中性；无前置愤怒的惩罚不产生奖赏性满足
+
+  - rule_id: R-APP-03
+    description: >
+      羡慕分流（调研§3.3 van de Ven 2009/2011/2015）：上行比较激活 envy 后，按「对方应得感×自身控制感」评价分流——
+      高应得→良性羡慕（行动倾向=向上努力）；低应得→恶意羡慕（倾向=拉倒对方，且预测后续幸灾乐祸）。
+    formal_check: manual
+    manual_reason: 分流行为有场景测试（tests/scenarios/test_envy_split.py），但良性/恶意分界的应得感阈值标定属人工语义判断，由 V6 复审承担。
+    valid_examples:
+      - "同事凭实绩升职(deservedness=0.9, control=0.6) → envy_benign，行动倾向=自我提升"
+      - "关系户靠舞弊上位(deservedness=0.1, control=0.3) → envy_malicious，行动倾向=贬损对方"
+    edge_or_counter:
+      - example: "deservedness=0.9 但引擎输出恶意羡慕"
+        counter: 高应得被误判为恶意 → 上进行为被建模为攻击性，与 van de Ven 实证分流相反；后续该对象失败时将错误输出幸灾乐祸
+
+  - rule_id: R-APP-04
+    description: >
+      安全框架倒 U（调研§1.5.4 良性受虐、§5.1 鬼屋实证）：安全框架确认(safety_frame→1)时，恐惧强度与享受呈倒 U——
+      享受峰值在「不能忍受之下一档」；安全框架破损失(safety_frame→0)时享受归零、纯恐惧主导。
+    formal_check: pytest:tests/scenarios/test_horror_inverted_u.py::TestInvertedU::test_enjoyment_inverted_u_and_frame_break
+    formal_check_note: 三档惊吓单调性破坏 + 破框架享受归零，均为数值断言。
+    valid_examples:
+      - "恐怖片三档惊吓(低/中/高) safety_frame=1 → fear_enjoyment 在中档最高，高档回落"
+      - "同高档惊吓 safety_frame=0(影院着火) → fear_enjoyment=0，fear 主导且伴随真实威胁行动倾向(逃离)"
+    edge_or_counter:
+      - example: "高强度+安全框架完好，享受线性最高"
+        counter: 线性享受违反倒 U——会把「超出承受的恐怖」误判为最优体验；同理 safety_frame=0 仍输出享受违反安全确认前提
+
+  - rule_id: R-APP-05
+    description: >
+      kama muta 触发（调研§1.5.8 Zickfeld 2018：19 国证据）：共享性关系**突然**增强 → kama muta（热胸口/泪目/鸡皮/哽咽，
+      时程 1–2 分钟内）；渐进增强只产生温情/依恋，不触发 kama muta。
+    formal_check: manual
+    manual_reason: 骤增/渐增对照有场景测试（tests/scenarios/test_reunion.py），但骤增斜率阈值标定属人工语义判断，由 V6 复审承担。
+    valid_examples:
+      - "失散亲人突然重逢(bond 变化率骤增) → kama_muta 激活>0.6，半衰期≤2 分钟"
+      - "告白被接受(关系骤升) → kama_muta + 心动复合"
+    edge_or_counter:
+      - example: "每日递增 1% 的亲密感累计到同等幅度"
+        counter: 若触发 kama muta 则违反骤增条件——正确输出为 companionate warmth；感动扳机是变化率不是幅值
+
+  - rule_id: R-INT-01
+    description: >
+      强度乘法结构（调研§6.3.3、§1.1）：intensity = 事件因子(§4.1) × 个体因子(§4.2) × 状态因子(§4.3)；
+      目标相关性=0 → 一切情绪激活=0（相关性为零则无情绪）。
+    formal_check: pytest:tests/test_intensity.py::TestZeroRelevance::test_zero_relevance_zero_activation
+    formal_check_note: 零点性质与乘法缩放为数值断言（含 G2 反例-1 葬礼场景）。
+    valid_examples:
+      - "陌生人的远亲去世(goal_relevance≈0.05) → 激活≈0；至亲去世(0.95) → 悲伤族强激活"
+      - "同一损失事件 × neuroticism=0.8 vs 0.2 → 强度按个体因子缩放"
+    edge_or_counter:
+      - example: "goal_relevance=0 但事件类别=LOSS 的凄美葬礼场景"
+        counter: 若输出悲伤>0 则违反评价先行——类别信息不得替代主体相关性（G2 反例-1）
+
+  - rule_id: R-INT-02
+    description: >
+      损失厌恶不对称（调研§4.1 前景理论）：同幅度损失的情绪强度 > 同幅度收益，约 2:1；
+      强度函数对负向 conduciveness 的斜率取不对称系数。
+    formal_check: pytest:tests/test_intensity.py::TestLossAversion::test_loss_aversion_asymmetry
+    formal_check_note: 成对数值断言（得 200 乐 ≈ 丢 100 痛）。
+    valid_examples:
+      - "丢 100 元(Δ=-0.2) 的痛苦强度 ≈ 得 200 元(Δ=+0.4) 的快乐强度"
+      - "BE 结局损失 vs HE 结局同幅度获得 → 损失侧强度显著更高"
+    edge_or_counter:
+      - example: "|Δ|=0.2 的得失输出等强度"
+        counter: 对称化会系统性高估快乐/低估痛苦，BE 场景的意难平将不可复现
+
+  - rule_id: R-DYN-01
+    description: >
+      三层时间尺度（调研§4.4、ALMA）：情绪分钟级指数衰减；心情=情绪的慢速 EMA(小时-天)；特质=终身人格参数不随事件变化；
+      情绪惯性(自相关)作为动力学参数。
+    formal_check: pytest:tests/test_dynamics.py::TestThreeLayers::test_three_layer_time_scales
+    formal_check_note: 时间常数断言（单事件后心情微变、情绪分钟级衰减；愤怒半衰期 12 分钟，<0.1 需约 36–40 分钟）。
+    valid_examples:
+      - "单次愤怒峰值 0.8 → 约 36 分钟（3 个半衰期）后激活<0.1，心情 valence 仅微降"
+      - "连续一周负面事件 → 心情层 valence 持续下移（慢速累积）"
+    edge_or_counter:
+      - example: "单次悲伤把 mood valence 拉到与情绪层同深度"
+        counter: 层级混叠 → 一次挫败即「抑郁心境」，与§4.4 心情时程矛盾
+
+  - rule_id: R-DYN-02
+    description: >
+      峰终记忆评分（调研§1.5.10 Fredrickson & Kahneman 1993）：记忆评分 ≈ peak + end 的加权，总时长不计；
+      BE/烂尾的意难平由「高峰+负终值」结构解释。
+    formal_check: pytest:tests/test_dynamics.py::TestPeakEnd::test_peak_end_duration_neglect
+    formal_check_note: 时长翻倍评分不变、终值变差评分显著变差，数值断言。
+    valid_examples:
+      - "60 分钟高分+BE 结局 vs 120 分钟同质高分+BE 结局 → 记忆评分几乎相同"
+      - "同旅程 happy-end 变体 → 评分显著高于 BE 变体（终值权重）"
+    edge_or_counter:
+      - example: "按时长加权平均评分"
+        counter: 时长加权会稀释终值 → BE 与 HE 的评分差被低估，意难平（§3.3）不可复现
+
+  - rule_id: R-EXP-01
+    description: >
+      双通道表达（调研§6.3.2、§3.4）：表达层同时输出 (a)类别中文词+强度分级 (b)4D 连续坐标；
+      多类别同时激活可输出混合描述（如「又好气又好笑」）。
+    formal_check: pytest:tests/test_expression.py::TestDualChannel::test_dual_channel_and_mixing
+    formal_check_note: 输出结构断言（双字段存在、混合场景双类别词）；分级单调见同文件 TestGradedLexicon。
+    valid_examples:
+      - "anger=0.5 & amusement=0.5 → 输出含两个类别词 + 4D(负效价+高唤醒的中点漂移)"
+      - "anger 强度 0.1/0.45/0.9 → 生气/愤怒/怒不可遏 分级词（恼怒/暴怒为独立类别）"
+    edge_or_counter:
+      - example: "仅输出单一 argmax 类别词"
+        counter: 单通道无法表达混合情绪（§3.1 类别软边界实证），「又爱又恨」类高频状态不可读

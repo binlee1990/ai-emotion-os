@@ -1,0 +1,1477 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-emotion-os v0.1：实现与场景验收 · 任务图</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='4' cy='8' r='3' fill='%231f9255'/%3E%3Ccircle cx='12' cy='8' r='3' fill='%23c4860c'/%3E%3C/svg%3E">
+<style>
+:root {
+  --panel: #edf0ef;
+  --surface: #ffffff;
+  --surface-2: #f3f5f4;
+  --band: rgba(29, 39, 43, 0.035);
+  --ink: #1d272b;
+  --muted: #536167;
+  --soft: #87949a;
+  --rule: #c5ccc4;
+  --track: #7b8884;
+  --track-soft: #a8b2ad;
+  --lamp-green: #1f9255;
+  --lamp-amber: #c4860c;
+  --lamp-red: #c63f2b;
+  --lamp-off: #b6beb9;
+  --green-tint: #dbefe1;
+  --amber-tint: #f6e9c8;
+  --red-tint: #f6dcd5;
+  --skip: #6b5d8c;
+  --skip-tint: #e6e2ee;
+  --shunt: #2c5fcc;
+  --shunt-tint: #dce5f8;
+  --focus: #2c5fcc;
+  --font-ui: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", "Segoe UI", system-ui, sans-serif;
+  --font-sign: "Bahnschrift", "DIN Alternate", "DIN 2014", "Roboto Condensed", "Arial Narrow", "Microsoft YaHei UI", sans-serif;
+  --font-mono: "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --panel: #11171a; --surface: #192124; --surface-2: #1f282b; --band: rgba(226, 232, 229, 0.03);
+    --ink: #e1e7e4; --muted: #9ba9a7; --soft: #6e7c7b; --rule: #2d383b; --track: #7d8b88; --track-soft: #4a5658;
+    --lamp-green: #3cc87c; --lamp-amber: #eeb03a; --lamp-red: #f06a52; --lamp-off: #3d484a;
+    --green-tint: #173326; --amber-tint: #3a2f16; --red-tint: #3d1f1a; --skip: #a595cf; --skip-tint: #2a2638;
+    --shunt: #6f9cff; --shunt-tint: #1c2945; --focus: #8fb2ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --panel: #11171a; --surface: #192124; --surface-2: #1f282b; --band: rgba(226, 232, 229, 0.03);
+  --ink: #e1e7e4; --muted: #9ba9a7; --soft: #6e7c7b; --rule: #2d383b; --track: #7d8b88; --track-soft: #4a5658;
+  --lamp-green: #3cc87c; --lamp-amber: #eeb03a; --lamp-red: #f06a52; --lamp-off: #3d484a;
+  --green-tint: #173326; --amber-tint: #3a2f16; --red-tint: #3d1f1a; --skip: #a595cf; --skip-tint: #2a2638;
+  --shunt: #6f9cff; --shunt-tint: #1c2945; --focus: #8fb2ff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--panel); color: var(--ink); font: 14px/1.55 var(--font-ui); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sign { font-family: var(--font-sign); font-stretch: condensed; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.mono { font-family: var(--font-mono); font-size: 12px; }
+.muted { color: var(--muted); }
+
+/* ---------- top bar ---------- */
+.topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 24px; padding: 16px 24px 10px; }
+.eyebrow { font-family: var(--font-sign); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.16em; font-size: 12px; color: var(--muted); }
+.topbar h1 { margin: 2px 0 0; font-size: 21px; line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; }
+.goal { grid-column: 1 / -1; color: var(--muted); margin: 0; max-width: 980px; }
+.goal b { color: var(--ink); font-weight: 600; }
+.top-actions { display: flex; align-items: center; gap: 10px; justify-self: end; }
+.live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--lamp-off); display: inline-block; }
+.live.on i { background: var(--lamp-green); animation: blink 2.4s ease-in-out infinite; }
+.live.lost i { background: var(--lamp-red); }
+@keyframes blink { 50% { opacity: 0.35; } }
+.btn { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+.btn:hover { border-color: var(--track); }
+.btn:disabled { color: var(--soft); cursor: default; }
+
+/* ---------- summary strip ---------- */
+.strip { margin: 4px 24px 0; padding: 10px 16px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; display: grid; grid-template-columns: minmax(120px, 1fr) auto; gap: 8px 24px; align-items: center; }
+.rail { display: flex; gap: 3px; height: 10px; align-items: stretch; min-width: 0; }
+.rail span { flex: 1 1 0; min-width: 3px; border-radius: 2px; background: var(--lamp-off); cursor: pointer; border: 0; padding: 0; }
+.rail span.gap { flex: 0 0 6px; background: transparent; cursor: default; }
+.rail .s-done { background: var(--lamp-green); }
+.rail .s-in_progress { background: var(--lamp-amber); }
+.rail .s-blocked { background: var(--lamp-red); }
+.rail .s-skipped { background: repeating-linear-gradient(135deg, var(--skip) 0 2px, transparent 2px 5px); }
+.rail .s-ready { background: var(--track-soft); }
+.rail .sel { outline: 2px solid var(--shunt); outline-offset: 1px; }
+.figures { display: flex; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
+.fig { display: flex; flex-direction: column; align-items: flex-end; }
+.fig.action { border: 0; background: none; padding: 3px 5px; margin: -3px -5px; border-radius: 4px; cursor: pointer; }
+.fig.action:hover { background: var(--surface-2); }
+.fig.action small { text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.fig b { font-family: var(--font-sign); font-stretch: condensed; font-size: 22px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fig small { color: var(--muted); font-size: 12px; }
+.fig.alert b { color: var(--lamp-red); }
+.verdict { grid-column: 1 / -1; font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.verdict details { min-width: 0; }
+.verdict summary { cursor: pointer; }
+.verdict details p { margin: 6px 0 0; overflow-wrap: anywhere; }
+.verdict .tag { font-weight: 700; color: var(--ink); }
+.verdict.ok .tag { color: var(--lamp-green); }
+
+/* ---------- tabs ---------- */
+.tabs { display: flex; gap: 2px; margin: 14px 24px 0; border-bottom: 1px solid var(--rule); overflow-x: auto; }
+.tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px 7px; cursor: pointer; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+.tab .count { font-family: var(--font-sign); font-stretch: condensed; margin-left: 6px; color: var(--soft); }
+
+/* ---------- layout ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 24px 24px; }
+.stage.with-drawer { grid-template-columns: minmax(0, 1fr) 420px; gap: 16px; }
+.view { min-width: 0; padding-top: 14px; }
+.view[hidden] { display: none; }
+
+/* ---------- graph canvas ---------- */
+.canvas-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.graph-find { display: flex; flex: 1 1 360px; align-items: center; gap: 8px; min-width: 0; }
+.search-box { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; max-width: 340px; min-width: 120px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 10px; }
+.search-box span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.search-box input { width: 100%; min-width: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 13px; outline-offset: 3px; }
+.graph-find select { max-width: 150px; min-height: 33px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; padding: 4px 8px; }
+.graph-context { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; margin: 0 0 8px; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
+.graph-context p { margin: 0; }
+.graph-context #graph-context { overflow-wrap: anywhere; }
+.graph-help { margin-left: auto; position: relative; }
+.graph-help summary { cursor: pointer; white-space: nowrap; }
+.graph-help .help-body { position: absolute; top: 24px; right: 0; z-index: 5; width: 270px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); box-shadow: 0 5px 20px #0002; }
+.graph-help .help-body p + p { margin-top: 5px; }
+.zoom { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.zoom button { border: 0; background: none; padding: 5px 9px; min-height: 32px; cursor: pointer; font-size: 13px; }
+.zoom button:hover { background: var(--surface-2); }
+.zoom button:disabled { cursor: default; color: var(--soft); }
+.zoom button + button { border-left: 1px solid var(--rule); }
+.zoom output { padding: 4px 8px; min-width: 52px; text-align: center; border-left: 1px solid var(--rule); font-family: var(--font-sign); font-stretch: condensed; font-size: 13px; }
+.canvas-wrap { position: relative; }
+.canvas-scroll { overflow: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); height: max(340px, calc(100vh - 380px)); min-height: 340px; overscroll-behavior: contain; scrollbar-color: var(--track-soft) var(--surface-2); cursor: grab; }
+.canvas-scroll.dragging { cursor: grabbing; user-select: none; }
+.canvas-scroll.dragging .node { cursor: grabbing; }
+.canvas-sizer { position: relative; }
+.canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.canvas svg { position: absolute; inset: 0; overflow: visible; }
+.lane-label { position: absolute; left: 0; padding: 12px 12px 0 16px; border-right: 1px solid var(--rule); }
+.lane-label b { display: block; font-size: 14px; line-height: 1.35; }
+.lane-label small { color: var(--muted); font-size: 12px; display: block; }
+.lane-label .lane-meter { margin-top: 8px; height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.lane-label .lane-meter i { display: block; height: 100%; background: var(--lamp-green); }
+.lane-label .gate { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.lane-label .gate.ok { color: var(--lamp-green); }
+.wave-head { position: absolute; top: 14px; text-align: center; color: var(--muted); font-size: 12px; }
+.wave-head b { font-family: var(--font-sign); font-stretch: condensed; font-size: 15px; color: var(--ink); font-weight: 600; margin-right: 6px; }
+.subgroup { position: absolute; border: 1px dashed var(--track-soft); border-radius: 8px; pointer-events: none; }
+.subgroup span { position: absolute; top: -9px; left: 10px; padding: 0 6px; background: var(--surface); font-size: 12px; color: var(--muted); line-height: 16px; }
+
+.node { position: absolute; display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px 16px 8px 18px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; cursor: pointer; transition: opacity .15s, border-color .15s; }
+.node:hover { border-color: var(--track); }
+.node.critical { border-color: var(--ink); border-width: 1px 1px 1px 1px; box-shadow: inset 0 3px 0 var(--ink); }
+.node.dim { opacity: 0.27; }
+.node.match { box-shadow: inset 3px 0 0 var(--shunt); }
+.node.related { border-color: var(--track); }
+.node.sel { border-color: var(--shunt); outline: 2px solid var(--shunt); outline-offset: 2px; }
+.node.s-done { background: var(--green-tint); }
+.node.s-in_progress { background: var(--amber-tint); border-color: var(--lamp-amber); }
+.node.s-blocked { background: var(--red-tint); border-color: var(--lamp-red); }
+.node.s-skipped { background: var(--skip-tint); color: var(--muted); }
+.node.s-skipped .n-label { text-decoration: line-through; text-decoration-color: var(--soft); }
+.n-top { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--muted); }
+.n-seq { font-family: var(--font-sign); font-stretch: condensed; font-size: 15px; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.n-status { margin-left: auto; white-space: nowrap; }
+.n-label { font-size: 13px; font-weight: 600; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.n-foot { margin-top: auto; display: flex; gap: 8px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.n-foot .loop { color: var(--shunt); font-weight: 600; }
+.n-foot .issue { color: var(--lamp-red); font-weight: 600; }
+.lamp { position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; border: 2px solid var(--surface); background: var(--lamp-off); }
+.lamp.in { left: -7px; }
+.lamp.out { right: -7px; }
+.lamp.green { background: var(--lamp-green); }
+.lamp.red { background: var(--lamp-red); }
+.lamp.amber { background: var(--lamp-amber); }
+.lamp.hollow { background: var(--surface); border: 2px solid var(--lamp-off); }
+.lamp.hollow-amber { background: var(--surface); border: 2px solid var(--lamp-amber); }
+
+.edge { fill: none; stroke: var(--track); stroke-width: 1.4; }
+.edge.soft { stroke-dasharray: 2 5; stroke: var(--track-soft); }
+.edge.crit { stroke: var(--ink); stroke-width: 2.4; }
+.edge.dim { opacity: 0.18; }
+.edge.hot { stroke: var(--ink); stroke-width: 2.4; opacity: 1; }
+.edge.loop { stroke: var(--shunt); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.edge.loop.used { stroke-width: 2.2; }
+.lane-band { fill: var(--band); }
+.col-band { fill: var(--band); }
+.lane-rule { stroke: var(--rule); stroke-width: 1; }
+.chip-bg { fill: var(--surface); stroke: var(--shunt); stroke-width: 1; }
+.chip-text { fill: var(--shunt); font: 600 11px var(--font-ui); }
+.minimap { position: absolute; right: 16px; bottom: 16px; z-index: 2; width: 184px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; box-shadow: 0 2px 8px #0001; }
+.minimap summary { padding: 5px 8px; color: var(--muted); cursor: pointer; font-size: 11px; }
+.minimap svg { display: block; width: 100%; height: 105px; border-top: 1px solid var(--rule); cursor: crosshair; touch-action: none; }
+.minimap .map-node { fill: var(--lamp-off); stroke: var(--surface); stroke-width: 2; }
+.minimap .map-node.done { fill: var(--lamp-green); }
+.minimap .map-node.in_progress { fill: var(--lamp-amber); }
+.minimap .map-node.blocked { fill: var(--lamp-red); }
+.minimap .map-node.ready { fill: var(--track); }
+.minimap .map-node.sel { stroke: var(--shunt); stroke-width: 7; }
+.minimap .map-node.dim { opacity: .25; }
+.minimap .map-viewport { fill: var(--shunt-tint); fill-opacity: .25; stroke: var(--shunt); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+.canvas.low-detail .n-foot, .canvas.low-detail .n-top > span:nth-child(2) { display: none; }
+.canvas.readable-overview .n-label { font-size: calc(12px / var(--graph-zoom)); line-height: 1.22; }
+.canvas.readable-overview .n-status { font-size: calc(10px / var(--graph-zoom)); }
+.canvas.readable-overview .n-seq { font-size: calc(11px / var(--graph-zoom)); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; font-size: 12px; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i.l { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.legend svg { width: 34px; height: 10px; }
+
+/* ---------- drawer ---------- */
+.drawer { min-width: 0; margin-top: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; align-self: start; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+.drawer[hidden] { display: none; }
+.d-head { position: sticky; top: 0; background: var(--surface); padding: 14px 16px 10px; border-bottom: 1px solid var(--rule); z-index: 1; }
+.d-head .row { display: flex; align-items: center; gap: 8px; }
+.d-head h2 { margin: 6px 0 2px; font-size: 17px; line-height: 1.4; overflow-wrap: anywhere; }
+.d-head .crumb { font-size: 12px; color: var(--muted); }
+.d-close { margin-left: auto; }
+.d-body { padding: 4px 16px 18px; }
+.d-sec { padding: 12px 0 4px; border-bottom: 1px dashed var(--rule); }
+.d-sec:last-child { border-bottom: 0; }
+.d-sec h3 { margin: 0 0 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.d-sec h3 .sign { font-size: 15px; }
+.d-sec h3 small { margin-left: auto; font-weight: 400; color: var(--muted); }
+.crit-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.crit-list li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 2px 8px; font-size: 13px; }
+.crit-list .mk { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; background: var(--lamp-off); }
+.crit-list .mk.ok { background: var(--lamp-green); }
+.crit-list .mk.no { background: var(--surface); border: 2px solid var(--lamp-red); }
+.crit-list .mk.wait { background: var(--surface); border: 2px solid var(--lamp-off); }
+.crit-list .ev { grid-column: 2; font-size: 12px; color: var(--muted); word-break: break-word; }
+.crit-list .ev code { font-family: var(--font-mono); font-size: 11.5px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--track-soft); text-underline-offset: 3px; cursor: pointer; text-align: left; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 1px 8px; border-radius: 4px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--lamp-off); }
+.pill.done i { background: var(--lamp-green); } .pill.in_progress i { background: var(--lamp-amber); } .pill.blocked i { background: var(--lamp-red); }
+.pill.ready i { background: var(--surface); border: 2px solid var(--lamp-green); } .pill.waiting i { background: var(--surface); border: 2px solid var(--lamp-red); }
+.pill.skipped i { background: var(--skip); }
+.callout { padding: 8px 10px; border-left: 3px solid var(--lamp-red); background: var(--red-tint); font-size: 13px; border-radius: 0 6px 6px 0; margin: 8px 0; }
+.callout.info { border-left-color: var(--shunt); background: var(--shunt-tint); }
+.cmd { display: block; margin-top: 6px; padding: 6px 8px; background: var(--surface-2); border-radius: 4px; font-family: var(--font-mono); font-size: 11.5px; word-break: break-all; color: var(--muted); }
+
+/* execution profile */
+.exec-sum { margin: 0 0 8px; font-weight: 600; font-size: 13px; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.hint-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.hint-list li::before { content: "· "; }
+.n-foot .xb { color: var(--ink); }
+.x-tag { font-size: 11.5px; color: var(--muted); margin-left: 6px; font-weight: 400; }
+
+/* execution tree */
+.tree { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.tree ul { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 1px solid var(--rule); margin-left: 5px; }
+.tree li { position: relative; }
+.tree ul > li::before { content: ""; position: absolute; left: -14px; top: 13px; width: 10px; border-top: 1px solid var(--rule); }
+.tree details > summary { list-style: none; cursor: pointer; }
+.tree details > summary::-webkit-details-marker { display: none; }
+.t-row { display: flex; align-items: flex-start; gap: 7px; padding: 3px 0; }
+.t-row .dot { flex: none; width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; background: var(--lamp-off); }
+.t-row .dot.done { background: var(--lamp-green); } .t-row .dot.in_progress, .t-row .dot.approved { background: var(--lamp-amber); }
+.t-row .dot.blocked { background: var(--lamp-red); } .t-row .dot.skipped { background: var(--skip); }
+.t-row .t-label { min-width: 0; }
+.t-row .t-meta { margin-left: auto; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.t-label { overflow-wrap: anywhere; }
+.t-row.focus .t-label { font-weight: 700; }
+.t-row .leaf { font-size: 11px; color: var(--muted); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; }
+.tree summary .caret { width: 12px; flex: none; color: var(--soft); font-size: 9px; margin: 6px 2px 0 -2px; transition: transform .15s; }
+.tree details[open] > summary .caret { transform: rotate(90deg); }
+.meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; display: flex; }
+.meter i { display: block; height: 100%; }
+.meter .m-done { background: var(--lamp-green); } .meter .m-skip { background: var(--skip); opacity: .6; }
+.meter .m-prog { background: var(--lamp-amber); } .meter .m-block { background: var(--lamp-red); }
+
+/* ---------- order view ---------- */
+.order-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-bottom: 14px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+.card h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chain { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; }
+.chain .arrow { color: var(--soft); }
+.waves { display: flex; gap: 0; overflow-x: auto; padding-bottom: 6px; }
+.wave { flex: 0 0 236px; padding: 0 14px 0 0; position: relative; }
+.wave + .wave { padding-left: 14px; border-left: 1px dashed var(--rule); }
+.wave h4 { margin: 0 0 8px; font-size: 12px; color: var(--muted); font-weight: 400; }
+.wave h4 b { font-family: var(--font-sign); font-stretch: condensed; font-size: 18px; color: var(--ink); margin-right: 6px; font-weight: 600; }
+.w-item { display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 7px 10px; margin-bottom: 6px; cursor: pointer; }
+.w-item:hover { border-color: var(--track); }
+.w-item.critical { box-shadow: inset 3px 0 0 var(--ink); }
+.w-item .row { display: flex; gap: 8px; align-items: baseline; font-size: 12px; color: var(--muted); }
+.w-item .row .sign { font-size: 14px; color: var(--ink); font-weight: 600; }
+.w-item .lbl { font-size: 13px; font-weight: 600; margin-top: 2px; }
+.seq-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seq-table th, .seq-table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.seq-table th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+.seq-table tr:last-child td { border-bottom: 0; }
+.seq-table tbody tr { cursor: pointer; }
+.seq-table tbody tr:hover td { background: var(--surface-2); }
+.seq-table .sign { font-size: 15px; font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ---------- monitor view ---------- */
+.kpis { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr 1.1fr; gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; }
+.kpi b { display: block; font-family: var(--font-sign); font-stretch: condensed; font-size: 30px; line-height: 1.05; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi b small { font-size: 16px; color: var(--muted); font-weight: 400; }
+.kpi span { font-size: 12px; color: var(--muted); }
+.kpi.alert b { color: var(--lamp-red); }
+.mon-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+.g-row { display: grid; grid-template-columns: minmax(7em, 0.8fr) minmax(0, 2fr) 9.5em; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--rule); font-size: 13px; }
+.g-row:last-child { border-bottom: 0; }
+.g-row .indent { color: var(--soft); }
+.g-row .num { font-family: var(--font-sign); font-stretch: condensed; font-size: 14px; white-space: nowrap; text-align: right; }
+.attn { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+.attn li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; }
+.attn .why { grid-column: 2; color: var(--muted); font-size: 12px; }
+.timeline { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 420px; overflow: auto; }
+.timeline li { display: grid; grid-template-columns: 88px 88px minmax(0, 1fr); gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--rule); }
+.timeline .t { font-family: var(--font-sign); font-stretch: condensed; color: var(--muted); font-variant-numeric: tabular-nums; }
+.timeline .k { font-weight: 600; }
+.timeline .k.fail, .timeline .k.block { color: var(--lamp-red); }
+.timeline .k.loop, .timeline .k.reset { color: var(--shunt); }
+.timeline .k.close, .timeline .k.verify { color: var(--lamp-green); }
+.timeline .d { color: var(--muted); word-break: break-word; }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+
+@media (max-width: 1180px) {
+  .stage.with-drawer { grid-template-columns: minmax(0, 1fr) 360px; }
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .topbar, .strip, .tabs { margin-left: 16px; margin-right: 16px; }
+  .topbar { padding: 14px 16px 8px; grid-template-columns: minmax(0, 1fr); }
+  .top-actions { justify-self: start; }
+  .strip { grid-template-columns: minmax(0, 1fr); }
+  .figures { justify-content: flex-start; }
+  .fig { align-items: flex-start; }
+  .stage, .stage.with-drawer { grid-template-columns: minmax(0, 1fr); padding: 0 16px 16px; }
+  .drawer { position: fixed; left: 0; right: 0; bottom: 0; top: auto; max-height: 72vh; margin: 0; border-radius: 12px 12px 0 0; z-index: 10; }
+  .order-top, .mon-grid { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .canvas-scroll { height: 58vh; min-height: 340px; }
+  .graph-find { flex-basis: 100%; }
+  .search-box { max-width: none; }
+  .minimap { width: 142px; right: 12px; bottom: 12px; }
+  .minimap svg { height: 78px; }
+  .timeline li { grid-template-columns: 76px minmax(0, 1fr); }
+  .timeline .k { grid-column: 2; }
+  .timeline .d { grid-column: 2; }
+}
+@media (max-width: 520px) {
+  .topbar { margin: 0; }
+  .top-actions { align-items: flex-start; flex-wrap: wrap; gap: 6px; }
+  .live { white-space: normal; }
+  .figures { gap: 12px 18px; }
+  .zoom { max-width: 100%; flex-wrap: wrap; }
+  .zoom button { padding: 5px 8px; }
+  .graph-find { flex-wrap: wrap; }
+  .graph-find select { max-width: 125px; }
+  .canvas-tools { gap: 8px; }
+  .graph-help { margin-left: 0; }
+  .graph-help .help-body { left: 0; right: auto; }
+  .legend { gap: 5px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <div class="eyebrow">Task Graph · 任务图</div>
+    <h1 id="title"></h1>
+  </div>
+  <div class="top-actions">
+    <span id="live" class="live" role="status"><i></i><span></span></span>
+    <button class="btn" id="theme-btn" type="button">主题：跟随系统</button>
+  </div>
+  <p class="goal" id="goal"></p>
+</header>
+<section class="strip" aria-label="整体进展">
+  <div class="rail" id="rail" aria-label="按执行顺序排列的节点状态"></div>
+  <div class="figures" id="figures"></div>
+  <div class="verdict" id="verdict"></div>
+</section>
+<nav class="tabs" role="tablist" aria-label="视图">
+  <button class="tab" role="tab" id="tab-graph" data-view="graph" aria-controls="view-graph">依赖图</button>
+  <button class="tab" role="tab" id="tab-order" data-view="order" aria-controls="view-order">执行顺序</button>
+  <button class="tab" role="tab" id="tab-monitor" data-view="monitor" aria-controls="view-monitor">进展监控<span class="count" id="attn-count"></span></button>
+</nav>
+<div class="stage" id="stage">
+  <main style="min-width:0">
+    <section class="view" id="view-graph" role="tabpanel" aria-labelledby="tab-graph">
+      <div class="canvas-tools">
+        <div class="graph-find" role="search" aria-label="查找图中节点">
+          <label class="search-box"><span>查找</span><input id="node-search" type="search" placeholder="节点名称、序号或分组" autocomplete="off" aria-label="搜索节点名称、序号或分组" aria-describedby="search-result"></label>
+          <select id="status-filter" aria-label="按节点状态筛选">
+            <option value="all">全部状态</option><option value="blocked">阻断</option><option value="in_progress">进行中</option><option value="ready">可启动</option><option value="waiting">等待入条件</option><option value="done">已完成</option><option value="skipped">已跳过</option>
+          </select>
+          <button class="btn" id="find-next" type="button" title="定位下一个匹配节点，搜索框中也可按 Enter">定位匹配</button>
+        </div>
+        <div class="zoom" role="group" aria-label="缩放">
+          <button type="button" data-zoom="out" aria-label="缩小">－</button>
+          <output id="zoom-val">100%</output>
+          <button type="button" data-zoom="in" aria-label="放大">＋</button>
+          <button type="button" data-zoom="fit">全图</button>
+          <button type="button" data-zoom="actual">1:1</button>
+          <button type="button" data-zoom="selected" id="locate-selected" disabled>定位选中</button>
+        </div>
+      </div>
+      <div class="graph-context">
+        <p id="search-result" role="status" aria-live="polite"></p>
+        <p id="graph-context"></p>
+        <details class="graph-help"><summary>读图与操作</summary><div class="help-body">
+          <p>列是执行批次，泳道是上级节点。点击节点看完整内容、条件与执行树。</p>
+          <p>拖动画布空白处平移；Ctrl / ⌘ + 滚轮以指针为中心缩放。</p>
+          <p>搜索后按 Enter 逐个定位；方向键在图中移动焦点；Esc 关闭详情。</p>
+          <p>筛选只弱化其他节点；选中节点的上下游链路始终保留。</p>
+        </div></details>
+      </div>
+      <div class="canvas-wrap">
+        <div class="canvas-scroll" id="canvas-scroll" tabindex="0" role="region" aria-label="任务依赖图画布，可滚动或拖动空白处平移">
+          <div class="canvas-sizer" id="sizer"><div class="canvas" id="canvas"></div></div>
+        </div>
+        <details class="minimap" id="minimap" open><summary>全局导航</summary><svg id="map-svg" tabindex="0" role="img" aria-label="全图导航，点击定位，方向键平移当前视口"></svg></details>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <section class="view" id="view-order" role="tabpanel" aria-labelledby="tab-order" hidden></section>
+    <section class="view" id="view-monitor" role="tabpanel" aria-labelledby="tab-monitor" hidden></section>
+  </main>
+  <aside class="drawer" id="drawer" aria-label="节点详情" hidden></aside>
+</div>
+<script type="application/json" id="tg-config">{"live": false, "poll_ms": 3000, "endpoint": "state.json"}</script>
+<script type="application/json" id="tg-data">{"meta": {"schema": "task-graph/1", "graph_id": "TG-20261108T2147-c06ca22f7890", "title": "ai-emotion-os v0.1：实现与场景验收", "goal": {"label": "事件→评价→情绪引擎可用，调研场景验证知识库可用性", "exit": [{"id": "G1", "text": "python -m pytest tests/ -q 全量 0 失败", "met": true, "evidence": "python -m pytest tests/ -q → 76 passed / 0 failed（2026-11-08）", "met_at": "2026-11-08T22:25:37", "check": "test"}, {"id": "G2", "text": "≥6 个调研场景测试按 §6.2 预测断言通过（打脸/恐怖倒U/重逢对照/BE峰终/悬念复合/羡慕分流/RPE）", "met": true, "evidence": "7 场景（打脸含三连反例/恐怖倒U+破框架/重逢骤增vs渐进/BE峰终+时长忽视+意难平/悬念三档+hope复合/羡慕分流+跨事件幸灾乐祸/RPE）全部通过", "met_at": "2026-11-08T22:25:37", "check": "test"}, {"id": "G3", "text": "方案栈机检门通过：grammar G3 + 引用图 G4 退出码 0", "met": true, "evidence": "grammar_fitness_test → 10 pass/0 fail/0 warn（manual 30%）；variance_diff --reference-graph → 0 broken references；均在最终文档上运行", "met_at": "2026-11-08T22:25:37", "check": "command"}, {"id": "G4", "text": "fresh-context 独立复审对「实现 vs 调研主张」无 P0 意见", "met": true, "evidence": "fresh-context 复审（general-purpose 子代理，47 次工具调用独立实跑）：结论『无 P0』；P1 五项已修复回归，修复含新增反例测试", "met_at": "2026-11-08T22:25:37", "check": "review"}]}, "task_ref": "D:\\work\\Knowledge\\thought\\ai-emotion-os\\.tasks\\emotion-os-v0.1.task.md", "created_at": "2026-11-08T21:47:07", "updated_at": "2026-11-08T22:25:37", "revision": "75d934385cf16bcf", "generated_at": "2026-11-08T22:25:46"}, "kpi": {"total": 11, "effective_total": 11, "ready": 0, "waiting": 0, "in_progress": 0, "done": 11, "skipped": 0, "blocked": 0, "done_ratio": 1.0, "estimate_total": 24.0, "estimate_done": 24.0, "estimate_ratio": 1.0, "loop_rounds": 1, "tree_leaves_total": 0, "tree_leaves_done": 0, "in_progress_age": []}, "readiness": {"complete": true, "reasons": [], "skipped": []}, "groups": [{"id": "design", "label": "方案栈", "kind": "阶段", "parent": null, "exit": [{"id": "X1", "text": "架构合同+领域规则+机检证据齐备", "met": true, "evidence": "N1/N2/N3 关闭：架构合同+grammar+机检证据（G3 退出码0、G4 退出码0）齐备", "met_at": "2026-11-08T21:47:29", "check": "other"}], "note": "", "depth": 0, "members": ["N1", "N2", "N3"], "counts": {"pending": 0, "in_progress": 0, "done": 3, "skipped": 0, "blocked": 0}, "closed": true, "exit_met": true, "done": true}, {"id": "impl", "label": "核心实现", "kind": "阶段", "parent": null, "exit": [{"id": "X1", "text": "emotion_os 包可导入，事件→表达管线贯通", "met": true, "evidence": "emotion_os 包可导入，事件→评价→生成→动力学→调节→表达管线贯通，全量 57 passed", "met_at": "2026-11-08T22:05:13", "check": "other"}], "note": "", "depth": 0, "members": ["N4", "N5", "N6", "N7", "N8"], "counts": {"pending": 0, "in_progress": 0, "done": 5, "skipped": 0, "blocked": 0}, "closed": true, "exit_met": true, "done": true}, {"id": "verify", "label": "验收", "kind": "阶段", "parent": null, "exit": [], "note": "", "depth": 0, "members": ["N9", "N10", "N11"], "counts": {"pending": 0, "in_progress": 0, "done": 3, "skipped": 0, "blocked": 0}, "closed": true, "exit_met": true, "done": true}], "nodes": [{"id": "N1", "label": "架构合同", "group": "design", "kind": "task", "goal": "", "depends_on": [], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "docs/architecture-contract.md 存在，含 §1 不可牺牲项/§3 参考系统模式/§4 模块 I-O 契约/§6 取舍与反例/§7 验收门", "met": true, "evidence": "docs/architecture-contract.md 已存在，含 §1 不可牺牲项、§3 参考系统模式表、§4 模块 I/O 契约表、§6 取舍与反例（G2 反例集）、§7 验收门 V1-V6", "met_at": "2026-11-08T21:47:21", "check": "file"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 3, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T21:47:21", "closed_at": "2026-11-08T21:47:21", "blocked_reason": null, "skip": null, "note": "MTP S3-S4 产物；2026-11-08 定稿", "attempts": [{"ts": "2026-11-08T21:47:21", "iteration": 0, "result": "pass", "note": "MTP S3-S4 产物；2026-11-08 定稿", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 0, "seq": "1.1", "critical": true, "remaining_critical": false, "upstream": [], "downstream": ["N2", "N4"], "group_path": ["方案栈"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N2", "label": "领域规则 grammar", "group": "design", "kind": "task", "goal": "", "depends_on": ["N1"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "grammar_fitness_test.py --grammar docs/grammar/appraisal-grammar.yaml 退出码 0", "met": true, "evidence": "grammar_fitness_test.py --grammar docs/grammar/appraisal-grammar.yaml 输出 10 pass / 0 fail / 0 warn，manual 3/10=30.0%，退出码 0（2026-11-08 运行）", "met_at": "2026-11-08T21:47:29", "check": "command"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 2, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T21:47:29", "closed_at": "2026-11-08T21:47:29", "blocked_reason": null, "skip": null, "note": "G3 门通过；7 条 formal 指向 pytest 节点，3 条标定类 manual 由 V6 复审承担", "attempts": [{"ts": "2026-11-08T21:47:29", "iteration": 0, "result": "pass", "note": "G3 门通过；7 条 formal 指向 pytest 节点，3 条标定类 manual 由 V6 复审承担", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 1, "seq": "2.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N1", "type": "hard"}], "downstream": ["N3", "N4"], "group_path": ["方案栈"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N3", "label": "文档引用门+README", "group": "design", "kind": "task", "goal": "", "depends_on": ["N2"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "variance_diff.py --reference-graph --doc-root docs 退出码 0，README.md 链接可达", "met": true, "evidence": "variance_diff.py --reference-graph --doc-root docs 输出 0 broken references，退出码 0；README.md 链接 research/docs/.tasks 目标均存在", "met_at": "2026-11-08T21:47:29", "check": "command"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 1, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T21:47:29", "closed_at": "2026-11-08T21:47:29", "blocked_reason": null, "skip": null, "note": "G4 门通过；README 为仓库入口", "attempts": [{"ts": "2026-11-08T21:47:29", "iteration": 0, "result": "pass", "note": "G4 门通过；README 为仓库入口", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 2, "seq": "3.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N2", "type": "hard"}], "downstream": ["N4"], "group_path": ["方案栈"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N4", "label": "骨架+核心域模型", "group": "impl", "kind": "task", "goal": "", "depends_on": ["G:design"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "emotion_os.core 提供 Event/AgentProfile/EmotionEpisode/AffectState 且可导入；tests/test_core.py 通过", "met": true, "evidence": "emotion_os.core 导入 OK（Event/AgentProfile/EmotionEpisode/AffectState/MoodState/MemoryTrace 等）；python -m pytest tests/test_core.py -q → 10 passed（2026-11-08）", "met_at": "2026-11-08T21:52:45", "check": "test"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 2, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T21:49:22", "closed_at": "2026-11-08T21:52:45", "blocked_reason": null, "skip": null, "note": "顶层 __init__ 暂只导出 core，N8 组装 engine 后补全", "attempts": [{"ts": "2026-11-08T21:52:45", "iteration": 0, "result": "pass", "note": "顶层 __init__ 暂只导出 core，N8 组装 engine 后补全", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 3, "seq": "4.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N1", "type": "hard"}, {"id": "N2", "type": "hard"}, {"id": "N3", "type": "hard"}], "downstream": ["N5"], "group_path": ["核心实现"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N5", "label": "评价器 SEC+OCC", "group": "impl", "kind": "task", "goal": "", "depends_on": ["N4"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "AppraisalResult 含 SEC 四检查维度+归因+OCC 分支判定；tests/test_appraiser.py 通过（含低控制分流反例）", "met": true, "evidence": "AppraisalResult 含 SEC 四检查维度+归因(deliberate_other/self_caused)+OCC 分支集(可多分支+primary 优先级)；python -m pytest tests/test_appraiser.py -q → 14 passed（含低控制分流反例底座 test_low_control_hint_preserved）", "met_at": "2026-11-08T21:54:45", "check": "test"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 3, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T21:52:45", "closed_at": "2026-11-08T21:54:45", "blocked_reason": null, "skip": null, "note": "", "attempts": [{"ts": "2026-11-08T21:54:45", "iteration": 0, "result": "pass", "note": "", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 4, "seq": "5.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N4", "type": "hard"}], "downstream": ["N6"], "group_path": ["核心实现"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N6", "label": "情绪生成（目录/映射/4D/强度）", "group": "impl", "kind": "task", "goal": "", "depends_on": ["N5"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "类别目录 ≥50 且含中文特有词；tests/test_generation.py 与 tests/test_intensity.py 通过（grammar 声明的 2 个 intensity 测试节点存在）", "met": true, "evidence": "类别目录 81 类含 8 个中文特有词；pytest tests/test_generation.py tests/test_intensity.py → 13 passed（grammar 声明两测试存在且通过）；全量 37 passed", "met_at": "2026-11-08T22:01:54", "check": "test"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 3, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T21:54:45", "closed_at": "2026-11-08T22:01:54", "blocked_reason": null, "skip": null, "note": "评价器补内隐需要（bond/social/aesthetic/epistemic 相关性）——测试暴露的真实设计缺口", "attempts": [{"ts": "2026-11-08T22:01:54", "iteration": 0, "result": "pass", "note": "评价器补内隐需要（bond/social/aesthetic/epistemic 相关性）——测试暴露的真实设计缺口", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 5, "seq": "6.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N5", "type": "hard"}], "downstream": ["N7"], "group_path": ["核心实现"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N7", "label": "动力学+调节", "group": "impl", "kind": "task", "goal": "", "depends_on": ["N6"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "三层动力学+峰终记忆+Gross 重评/抑制；tests/test_dynamics.py 与 tests/test_regulation.py 通过（grammar 声明的 2 个 dynamics 测试节点存在）", "met": true, "evidence": "三层动力学+峰终记忆+Gross 重评/抑制实现；pytest tests/test_dynamics.py tests/test_regulation.py → 10 passed（grammar 声明 test_three_layer_time_scales / test_peak_end_duration_neglect 存在且通过）；全量 47 passed", "met_at": "2026-11-08T22:03:29", "check": "test"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 2, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T22:01:54", "closed_at": "2026-11-08T22:03:29", "blocked_reason": null, "skip": null, "note": "", "attempts": [{"ts": "2026-11-08T22:03:29", "iteration": 0, "result": "pass", "note": "", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 6, "seq": "7.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N6", "type": "hard"}], "downstream": ["N8"], "group_path": ["核心实现"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N8", "label": "表达+引擎组装", "group": "impl", "kind": "task", "goal": "", "depends_on": ["N7"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "中文分级词表双通道输出；EmotionEngine.process 贯通；tests/test_expression.py 与 tests/test_engine.py 通过（grammar 声明的 expression 测试节点存在）", "met": true, "evidence": "中文分级词表(显式77档+通用回退)+双通道 ExpressionOutput+EmotionEngine.process 贯通；pytest 全量 57 passed（test_expression.py 含 test_dual_channel_and_mixing，test_engine.py 4 项策略/习惯化接入通过）", "met_at": "2026-11-08T22:05:13", "check": "test"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 2, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T22:03:29", "closed_at": "2026-11-08T22:05:13", "blocked_reason": null, "skip": null, "note": "顶层 __init__ 已补 EmotionEngine/ProcessResult 导出", "attempts": [{"ts": "2026-11-08T22:05:13", "iteration": 0, "result": "pass", "note": "顶层 __init__ 已补 EmotionEngine/ProcessResult 导出", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 7, "seq": "8.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N7", "type": "hard"}], "downstream": ["N9"], "group_path": ["核心实现"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N9", "label": "场景测试", "group": "verify", "kind": "task", "goal": "", "depends_on": ["N8"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "tests/scenarios/ 下 ≥6 场景测试通过，且 grammar 声明的全部 pytest 节点存在并运行", "met": true, "evidence": "tests/scenarios/ 7 个场景文件 18 项测试全部通过（打脸两段式+无前置反例/恐怖倒U+破框架/重逢骤增vs渐进/BE峰终+时长忽视+意难平/悬念三档/羡慕分流+幸灾乐祸/RPE）；grammar 声明的 7 个 pytest 节点逐一经 pytest \u003cnodeid\u003e 运行通过", "met_at": "2026-11-08T22:09:01", "check": "test"}], "on_fail": {"route": "goto", "target": "N6", "max_iterations": 3}, "estimate": 3, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T22:05:14", "closed_at": "2026-11-08T22:09:02", "blocked_reason": null, "skip": null, "note": "修复两处真实缺口：fiero 需 prior_adversity_resolved；纯比较事件对方得/失改由 social.direction 判读", "attempts": [{"ts": "2026-11-08T22:09:02", "iteration": 0, "result": "pass", "note": "修复两处真实缺口：fiero 需 prior_adversity_resolved；纯比较事件对方得/失改由 social.direction 判读", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 8, "seq": "9.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N8", "type": "hard"}], "downstream": ["N10"], "group_path": ["验收"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N10", "label": "全量回归+门复核", "group": "verify", "kind": "task", "goal": "", "depends_on": ["N9"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "python -m pytest tests/ -q 全量 0 失败", "met": true, "evidence": "python -m pytest tests/ -q → 75 passed / 0 failed（2026-11-08）", "met_at": "2026-11-08T22:09:11", "check": "test"}, {"id": "X2", "text": "G3/G4 机检门在最终文档上重跑退出码 0", "met": true, "evidence": "最终文档重跑：grammar G3 → 10 pass/0 fail/0 warn manual 30%；引用图 G4 → 0 broken references exit 0", "met_at": "2026-11-08T22:09:11", "check": "command"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 1, "executor": "", "delegation": null, "participation": "continuous", "exec": null, "status": "done", "frozen": true, "iteration": 0, "tree_ref": null, "started_at": "2026-11-08T22:09:02", "closed_at": "2026-11-08T22:09:11", "blocked_reason": null, "skip": null, "note": "", "attempts": [{"ts": "2026-11-08T22:09:11", "iteration": 0, "result": "pass", "note": "", "exec": null}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 9, "seq": "10.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N9", "type": "hard"}], "downstream": ["N11"], "group_path": ["验收"], "tree": null, "exec_view": {"declared": false, "summary": "未声明 · 主会话/继承", "findings": [], "conflicts": []}, "tree_stale": false}, {"id": "N11", "label": "独立复审", "group": "verify", "kind": "task", "goal": "", "depends_on": ["N10"], "soft_depends_on": [], "entry": [], "exit": [{"id": "X1", "text": "fresh-context 复审子代理返回复审结论且无 P0 意见", "met": true, "evidence": "fresh 复审结论：无 P0；5 项 P1 已全部修复并回归（①grammar nodeid 类限定 7/7 实跑解析通过 ②R-APP-02 罚错对象→charges 记账匹配+新反例测试 test_wrong_punishment_target ③恶意羡慕→幸灾乐祸跨事件链（charges）+无前置对照臂 ④麻了入目录+过载生成路径 ⑤悬念公式去概率双重计入+注释修正）；P2 十项中文本/守卫/死代码修复或记入合同 §8 v0.2。修复后全量 76 passed、G3/G4 门通过", "met_at": "2026-11-08T22:25:36", "check": "review"}], "on_fail": {"route": "retry", "target": null, "max_iterations": 3}, "estimate": 2, "executor": "", "delegation": null, "participation": "continuous", "exec": {"mode": "main", "tier": "inherit", "effort": "inherit", "width": 1, "writes": null, "isolation": "shared", "reviewer": "fresh", "why": ""}, "status": "done", "frozen": true, "iteration": 1, "tree_ref": null, "started_at": "2026-11-08T22:09:11", "closed_at": "2026-11-08T22:25:37", "blocked_reason": null, "skip": null, "note": "复审-修复-回归一轮闭环；P2-1/P2-9 记入架构合同 §8 v0.2 候选", "attempts": [{"ts": "2026-11-08T22:20:52", "iteration": 0, "result": "fail", "criteria": ["X1"], "reason": "复审无P0但有5项P1：grammar nodeid类限定缺失、R-APP-02罚错对象未实现、羡慕→幸灾乐祸无跨事件路径、麻了缺词、悬念峰值注释失实；按复审建议修复后重验", "gate": "gate:X1", "fingerprint": "gate:X1", "exec": {"mode": "main", "tier": "inherit", "effort": "inherit", "width": 1, "writes": null, "isolation": "shared", "reviewer": "fresh", "why": ""}}, {"ts": "2026-11-08T22:25:37", "iteration": 1, "result": "pass", "note": "复审-修复-回归一轮闭环；P2-1/P2-9 记入架构合同 §8 v0.2 候选", "exec": {"mode": "main", "tier": "inherit", "effort": "inherit", "width": 1, "writes": null, "isolation": "shared", "reviewer": "fresh", "why": ""}}], "display_status": "done", "acceptance_issue": null, "unmet_entry": [], "wave": 10, "seq": "11.1", "critical": true, "remaining_critical": false, "upstream": [{"id": "N10", "type": "hard"}], "downstream": [], "group_path": ["验收"], "tree": null, "exec_view": {"declared": true, "summary": "主会话 · 继承", "findings": [], "conflicts": []}, "tree_stale": false}], "edges": [{"from": "N1", "to": "N2", "type": "hard"}, {"from": "N2", "to": "N3", "type": "hard"}, {"from": "N1", "to": "N4", "type": "hard"}, {"from": "N2", "to": "N4", "type": "hard"}, {"from": "N3", "to": "N4", "type": "hard"}, {"from": "N4", "to": "N5", "type": "hard"}, {"from": "N5", "to": "N6", "type": "hard"}, {"from": "N6", "to": "N7", "type": "hard"}, {"from": "N7", "to": "N8", "type": "hard"}, {"from": "N8", "to": "N9", "type": "hard"}, {"from": "N9", "to": "N10", "type": "hard"}, {"from": "N10", "to": "N11", "type": "hard"}], "loop_edges": [{"from": "N1", "to": "N1", "route": "retry", "count": 0, "max": 3}, {"from": "N2", "to": "N2", "route": "retry", "count": 0, "max": 3}, {"from": "N3", "to": "N3", "route": "retry", "count": 0, "max": 3}, {"from": "N4", "to": "N4", "route": "retry", "count": 0, "max": 3}, {"from": "N5", "to": "N5", "route": "retry", "count": 0, "max": 3}, {"from": "N6", "to": "N6", "route": "retry", "count": 0, "max": 3}, {"from": "N7", "to": "N7", "route": "retry", "count": 0, "max": 3}, {"from": "N8", "to": "N8", "route": "retry", "count": 0, "max": 3}, {"from": "N9", "to": "N6", "route": "goto", "count": 0, "max": 3}, {"from": "N10", "to": "N10", "route": "retry", "count": 0, "max": 3}, {"from": "N11", "to": "N11", "route": "retry", "count": 1, "max": 3}], "order": {"waves": [["N1"], ["N2"], ["N3"], ["N4"], ["N5"], ["N6"], ["N7"], ["N8"], ["N9"], ["N10"], ["N11"]], "sequence": {"N1": "1.1", "N2": "2.1", "N3": "3.1", "N4": "4.1", "N5": "5.1", "N6": "6.1", "N7": "7.1", "N8": "8.1", "N9": "9.1", "N10": "10.1", "N11": "11.1"}, "critical_path": ["N1", "N2", "N3", "N4", "N5", "N6", "N7", "N8", "N9", "N10", "N11"], "critical_length": 24.0, "remaining_critical_path": [], "remaining_critical_length": 0.0, "ready": []}, "layout": {"nodes": {"N1": {"x": 172, "y": 82, "w": 184, "h": 96, "col": 0}, "N2": {"x": 400, "y": 82, "w": 184, "h": 96, "col": 1}, "N3": {"x": 628, "y": 82, "w": 184, "h": 96, "col": 2}, "N4": {"x": 856, "y": 244, "w": 184, "h": 96, "col": 3}, "N5": {"x": 1084, "y": 244, "w": 184, "h": 96, "col": 4}, "N6": {"x": 1312, "y": 244, "w": 184, "h": 96, "col": 5}, "N7": {"x": 1540, "y": 244, "w": 184, "h": 96, "col": 6}, "N8": {"x": 1768, "y": 244, "w": 184, "h": 96, "col": 7}, "N9": {"x": 1996, "y": 406, "w": 184, "h": 96, "col": 8}, "N10": {"x": 2224, "y": 406, "w": 184, "h": 96, "col": 9}, "N11": {"x": 2452, "y": 406, "w": 184, "h": 96, "col": 10}}, "lanes": [{"id": "design", "label": "方案栈", "kind": "阶段", "y": 56, "h": 148}, {"id": "impl", "label": "核心实现", "kind": "阶段", "y": 218, "h": 148}, {"id": "verify", "label": "验收", "kind": "阶段", "y": 380, "h": 148}], "subgroups": [], "width": 2720, "height": 562, "columns": 11, "col_w": 228, "node_w": 184, "node_h": 96, "row_h": 132, "lane_label_w": 148, "left_pad": 24, "top_pad": 56}, "events": [{"ts": "2026-11-08T22:25:37", "type": "verify", "target": "goal", "detail": "G4: fresh-context 复审（general-purpose 子代理，47 次工具调用独立实跑）：结论『无 P0』；P1 五项已修复回归，修复含新增反例测试"}, {"ts": "2026-11-08T22:25:37", "type": "verify", "target": "goal", "detail": "G3: grammar_fitness_test → 10 pass/0 fail/0 warn（manual 30%）；variance_diff --reference-graph → 0 broken references；均在最终文档上运行"}, {"ts": "2026-11-08T22:25:37", "type": "verify", "target": "goal", "detail": "G2: 7 场景（打脸含三连反例/恐怖倒U+破框架/重逢骤增vs渐进/BE峰终+时长忽视+意难平/悬念三档+hope复合/羡慕分流+跨事件幸灾乐祸/RPE）全部通过"}, {"ts": "2026-11-08T22:25:37", "type": "verify", "target": "goal", "detail": "G1: python -m pytest tests/ -q → 76 passed / 0 failed（2026-11-08）"}, {"ts": "2026-11-08T22:25:37", "type": "close", "target": "N11", "detail": "复审-修复-回归一轮闭环；P2-1/P2-9 记入架构合同 §8 v0.2 候选"}, {"ts": "2026-11-08T22:25:36", "type": "verify", "target": "N11", "detail": "X1: fresh 复审结论：无 P0；5 项 P1 已全部修复并回归（①grammar nodeid 类限定 7/7 实跑解析通过 ②R-APP-02 罚错对象→charges 记账匹配+新反例测试 test_wrong_punishment_target ③恶意羡慕→幸灾乐祸跨事件链（charges）+无前置对照臂 ④麻了入目录+过载生成路径 ⑤悬念公式去概率双重计入+注释修正）；P2 十项中文本/守卫/死代码修复或记入合同 §8 v0.2。修复后全量 76 passed、G3/G4 门通过"}, {"ts": "2026-11-08T22:20:52", "type": "loop", "target": "N11", "detail": "原地重试 1/3"}, {"ts": "2026-11-08T22:20:52", "type": "fail", "target": "N11", "detail": "复审无P0但有5项P1：grammar nodeid类限定缺失、R-APP-02罚错对象未实现、羡慕→幸灾乐祸无跨事件路径、麻了缺词、悬念峰值注释失实；按复审建议修复后重验（验收门 gate:X1）"}, {"ts": "2026-11-08T22:09:11", "type": "start", "target": "N11", "detail": "第 1 轮"}, {"ts": "2026-11-08T22:09:11", "type": "close", "target": "N10", "detail": ""}, {"ts": "2026-11-08T22:09:11", "type": "verify", "target": "N10", "detail": "X2: 最终文档重跑：grammar G3 → 10 pass/0 fail/0 warn manual 30%；引用图 G4 → 0 broken references exit 0"}, {"ts": "2026-11-08T22:09:11", "type": "verify", "target": "N10", "detail": "X1: python -m pytest tests/ -q → 75 passed / 0 failed（2026-11-08）"}, {"ts": "2026-11-08T22:09:02", "type": "start", "target": "N10", "detail": "第 1 轮"}, {"ts": "2026-11-08T22:09:02", "type": "close", "target": "N9", "detail": "修复两处真实缺口：fiero 需 prior_adversity_resolved；纯比较事件对方得/失改由 social.direction 判读"}, {"ts": "2026-11-08T22:09:01", "type": "verify", "target": "N9", "detail": "X1: tests/scenarios/ 7 个场景文件 18 项测试全部通过（打脸两段式+无前置反例/恐怖倒U+破框架/重逢骤增vs渐进/BE峰终+时长忽视+意难平/悬念三档/羡慕分流+幸灾乐祸/RPE）；grammar 声明的 7 个 pytest 节点逐一经 pytest \u003cnodeid\u003e 运行通过"}, {"ts": "2026-11-08T22:05:14", "type": "start", "target": "N9", "detail": "第 1 轮"}, {"ts": "2026-11-08T22:05:13", "type": "verify", "target": "impl", "detail": "X1: emotion_os 包可导入，事件→评价→生成→动力学→调节→表达管线贯通，全量 57 passed"}, {"ts": "2026-11-08T22:05:13", "type": "close", "target": "N8", "detail": "顶层 __init__ 已补 EmotionEngine/ProcessResult 导出"}, {"ts": "2026-11-08T22:05:13", "type": "verify", "target": "N8", "detail": "X1: 中文分级词表(显式77档+通用回退)+双通道 ExpressionOutput+EmotionEngine.process 贯通；pytest 全量 57 passed（test_expression.py 含 test_dual_channel_and_mixing，test_engine.py 4 项策略/习惯化接入通过）"}, {"ts": "2026-11-08T22:03:29", "type": "start", "target": "N8", "detail": "第 1 轮"}, {"ts": "2026-11-08T22:03:29", "type": "close", "target": "N7", "detail": ""}, {"ts": "2026-11-08T22:03:29", "type": "verify", "target": "N7", "detail": "X1: 三层动力学+峰终记忆+Gross 重评/抑制实现；pytest tests/test_dynamics.py tests/test_regulation.py → 10 passed（grammar 声明 test_three_layer_time_scales / test_peak_end_duration_neglect 存在且通过）；全量 47 passed"}, {"ts": "2026-11-08T22:01:54", "type": "start", "target": "N7", "detail": "第 1 轮"}, {"ts": "2026-11-08T22:01:54", "type": "close", "target": "N6", "detail": "评价器补内隐需要（bond/social/aesthetic/epistemic 相关性）——测试暴露的真实设计缺口"}, {"ts": "2026-11-08T22:01:54", "type": "verify", "target": "N6", "detail": "X1: 类别目录 81 类含 8 个中文特有词；pytest tests/test_generation.py tests/test_intensity.py → 13 passed（grammar 声明两测试存在且通过）；全量 37 passed"}, {"ts": "2026-11-08T21:54:45", "type": "start", "target": "N6", "detail": "第 1 轮"}, {"ts": "2026-11-08T21:54:45", "type": "close", "target": "N5", "detail": ""}, {"ts": "2026-11-08T21:54:45", "type": "verify", "target": "N5", "detail": "X1: AppraisalResult 含 SEC 四检查维度+归因(deliberate_other/self_caused)+OCC 分支集(可多分支+primary 优先级)；python -m pytest tests/test_appraiser.py -q → 14 passed（含低控制分流反例底座 test_low_control_hint_preserved）"}, {"ts": "2026-11-08T21:52:45", "type": "start", "target": "N5", "detail": "第 1 轮"}, {"ts": "2026-11-08T21:52:45", "type": "close", "target": "N4", "detail": "顶层 __init__ 暂只导出 core，N8 组装 engine 后补全"}, {"ts": "2026-11-08T21:52:45", "type": "verify", "target": "N4", "detail": "X1: emotion_os.core 导入 OK（Event/AgentProfile/EmotionEpisode/AffectState/MoodState/MemoryTrace 等）；python -m pytest tests/test_core.py -q → 10 passed（2026-11-08）"}, {"ts": "2026-11-08T21:49:22", "type": "start", "target": "N4", "detail": "第 1 轮"}, {"ts": "2026-11-08T21:47:29", "type": "verify", "target": "design", "detail": "X1: N1/N2/N3 关闭：架构合同+grammar+机检证据（G3 退出码0、G4 退出码0）齐备"}, {"ts": "2026-11-08T21:47:29", "type": "close", "target": "N3", "detail": "G4 门通过；README 为仓库入口"}, {"ts": "2026-11-08T21:47:29", "type": "verify", "target": "N3", "detail": "X1: variance_diff.py --reference-graph --doc-root docs 输出 0 broken references，退出码 0；README.md 链接 research/docs/.tasks 目标均存在"}, {"ts": "2026-11-08T21:47:29", "type": "start", "target": "N3", "detail": "第 1 轮"}, {"ts": "2026-11-08T21:47:29", "type": "close", "target": "N2", "detail": "G3 门通过；7 条 formal 指向 pytest 节点，3 条标定类 manual 由 V6 复审承担"}, {"ts": "2026-11-08T21:47:29", "type": "verify", "target": "N2", "detail": "X1: grammar_fitness_test.py --grammar docs/grammar/appraisal-grammar.yaml 输出 10 pass / 0 fail / 0 warn，manual 3/10=30.0%，退出码 0（2026-11-08 运行）"}, {"ts": "2026-11-08T21:47:29", "type": "start", "target": "N2", "detail": "第 1 轮"}, {"ts": "2026-11-08T21:47:21", "type": "close", "target": "N1", "detail": "MTP S3-S4 产物；2026-11-08 定稿"}, {"ts": "2026-11-08T21:47:21", "type": "verify", "target": "N1", "detail": "X1: docs/architecture-contract.md 已存在，含 §1 不可牺牲项、§3 参考系统模式表、§4 模块 I/O 契约表、§6 取舍与反例（G2 反例集）、§7 验收门 V1-V6"}, {"ts": "2026-11-08T21:47:21", "type": "start", "target": "N1", "detail": "第 1 轮"}, {"ts": "2026-11-08T21:47:07", "type": "init", "target": "TG-20261108T2147-c06ca22f7890", "detail": "ai-emotion-os v0.1：实现与场景验收"}]}</script>
+<script>
+(function () {
+  "use strict";
+  var CONFIG = JSON.parse(document.getElementById("tg-config").textContent);
+  var DATA = JSON.parse(document.getElementById("tg-data").textContent);
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var STATUS = {
+    ready: "可启动", waiting: "等待入条件", in_progress: "进行中",
+    done: "已完成", skipped: "已跳过", blocked: "阻断", pending: "未开始"
+  };
+  var TREE_STATUS = { pending: "待定", approved: "已批准", in_progress: "进行中", done: "已完成", skipped: "已跳过", blocked: "阻断" };
+  var CHECK = { test: "测试", command: "命令", file: "文件", review: "复审", human: "人工确认", metric: "指标", other: "判据" };
+  var EVENTS = {
+    init: "创建", "add-node": "新增节点", "add-group": "新增上级节点", "edit-node": "修改节点", "remove-node": "删除节点",
+    "entry-met": "入条件满足", start: "开始", verify: "出条件验证", close: "完成", fail: "未通过", loop: "返工",
+    reset: "下游重置", skip: "跳过", block: "阻断", unblock: "解除阻断", reopen: "重开", "link-tree": "关联执行树"
+  };
+  var KIND = { task: "", gate: "关卡", loop: "循环", verify: "验证" };
+  var ui = { view: "graph", node: null, zoom: null, zoomMode: "fit", theme: "auto", query: "", status: "all", treeOpen: Object.create(null), lastStamp: null, lastOk: null };
+  var filterStatuses = ["all", "ready", "waiting", "in_progress", "done", "skipped", "blocked"];
+
+  function readHash() {
+    var h = location.hash.replace(/^#/, "");
+    h.split("&").forEach(function (kv) {
+      var p = kv.split("="), value;
+      try { value = decodeURIComponent(p.slice(1).join("=")); } catch (e) { return; }
+      if (p[0] === "view" && ["graph", "order", "monitor"].indexOf(p[1]) >= 0) ui.view = p[1];
+      if (p[0] === "node" && value) ui.node = value;
+      if (p[0] === "q") ui.query = value;
+      if (p[0] === "status" && filterStatuses.indexOf(value) >= 0) ui.status = value;
+    });
+  }
+  function writeHash() {
+    var h = "view=" + ui.view + (ui.node ? "&node=" + encodeURIComponent(ui.node) : "") + (ui.query ? "&q=" + encodeURIComponent(ui.query) : "") + (ui.status !== "all" ? "&status=" + ui.status : "");
+    try { history.replaceState(null, "", "#" + h); } catch (e) { location.hash = h; }
+  }
+  function store(key, value) { try { if (value === undefined) return localStorage.getItem(key); localStorage.setItem(key, value); } catch (e) { return null; } return null; }
+
+  function el(tag, attrs, kids) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v === null || v === undefined || v === false) return;
+      if (k === "text") node.textContent = v;
+      else if (k === "class") node.className = v;
+      else if (k === "style") node.setAttribute("style", v);
+      else if (k.slice(0, 2) === "on") node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v === true ? "" : v);
+    });
+    (kids || []).forEach(function (kid) { if (kid !== null && kid !== undefined && kid !== false) node.appendChild(typeof kid === "string" ? document.createTextNode(kid) : kid); });
+    if ((tag === "button" || tag === "summary" || node.hasAttribute("tabindex")) && !node.id && !node.hasAttribute("data-focus-key")) {
+      node.setAttribute("data-focus-key", (node.className || tag) + ":" + (node.getAttribute("aria-label") || node.textContent));
+    }
+    return node;
+  }
+  function svg(tag, attrs) {
+    var node = document.createElementNS(SVGNS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { if (attrs[k] !== null && attrs[k] !== undefined) node.setAttribute(k, attrs[k]); });
+    return node;
+  }
+  function fmtTime(iso) {
+    if (!iso) return "";
+    var m = String(iso).match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    return m ? m[2] + "-" + m[3] + " " + m[4] + ":" + m[5] : String(iso);
+  }
+  function nodeMap() { var m = Object.create(null); DATA.nodes.forEach(function (n) { m[n.id] = n; }); return m; }
+  function groupMap() { var m = Object.create(null); DATA.groups.forEach(function (g) { m[g.id] = g; }); return m; }
+  function pill(status, text) { return el("span", { class: "pill " + status }, [el("i"), text || STATUS[status] || status]); }
+  function exitCount(n) { var ok = 0; (n.exit || []).forEach(function (x) { if (x.met) ok++; }); return [ok, (n.exit || []).length]; }
+  var MODE = { main: "主会话", agent: "子代理", fanout: "扇出", human: "人", external: "外部" };
+  var MODE_FULL = { main: "主会话直接执行", agent: "派一个子代理（fresh context）", fanout: "扇出多个子代理并行", human: "由人执行或裁决", external: "外部模型/CLI（须用户明确授权）" };
+  var TIER = { inherit: "继承当前会话", light: "轻量", standard: "标准", frontier: "旗舰" };
+  var REVIEWER = { fresh: "fresh-context 子代理", human: "人", second_model: "第二模型（须用户明确授权）" };
+  function execBadge(x) {
+    if (!x) return "";
+    var t = MODE[x.mode] + (x.mode === "fanout" ? "×" + x.width : "");
+    return x.tier && x.tier !== "inherit" ? t + "·" + TIER[x.tier] : t;
+  }
+  function execText(x) {
+    if (!x) return "未声明（主会话/继承）";
+    var t = MODE[x.mode] + (x.mode === "fanout" ? "×" + x.width : "");
+    if (x.mode === "human") return t;
+    // Same wording as the CLI's exec_summary(): one "继承" when both tier and effort inherit.
+    if (x.tier === "inherit" && x.effort === "inherit") return t + " · 继承";
+    return t + " · " + (x.tier === "inherit" ? "继承" : TIER[x.tier] || x.tier) + "/" + (x.effort === "inherit" ? "继承" : x.effort);
+  }
+
+  function nodeElement(id) {
+    var cards = document.querySelectorAll(".node[data-node]");
+    for (var i = 0; i < cards.length; i++) if (cards[i].getAttribute("data-node") === id) return cards[i];
+    return null;
+  }
+  function focusSnapshot() {
+    var active = document.activeElement;
+    if (!active || active === document.body) return null;
+    var scope = active.closest("#drawer, .view");
+    return { id: active.id, key: active.getAttribute("data-focus-key"), scope: scope && scope.id,
+      start: typeof active.selectionStart === "number" ? active.selectionStart : null,
+      end: typeof active.selectionEnd === "number" ? active.selectionEnd : null };
+  }
+  function restoreFocus(saved) {
+    if (!saved) return false;
+    var target = saved.id ? document.getElementById(saved.id) : null;
+    if (!target && saved.key) {
+      var scope = saved.scope ? document.getElementById(saved.scope) : document;
+      var candidates = (scope || document).querySelectorAll("[data-focus-key]");
+      for (var i = 0; i < candidates.length; i++) if (candidates[i].getAttribute("data-focus-key") === saved.key) { target = candidates[i]; break; }
+    }
+    if (!target || target.closest("[hidden]")) return false;
+    ui.restoringFocus = true;
+    target.focus({ preventScroll: true });
+    if (saved.start !== null && typeof target.setSelectionRange === "function") target.setSelectionRange(saved.start, saved.end);
+    ui.restoringFocus = false;
+    return true;
+  }
+  function captureViewState() {
+    var positions = [];
+    ["#canvas-scroll", "#drawer", "#view-order .waves", "#view-order .table-wrap", "#view-monitor .timeline"].forEach(function (selector) {
+      var node = document.querySelector(selector);
+      if (node) positions.push({ selector: selector, x: node.scrollLeft, y: node.scrollTop });
+    });
+    return { focus: focusSnapshot(), positions: positions, pageX: window.scrollX, pageY: window.scrollY };
+  }
+  function restoreViewState(saved, resetDrawer) {
+    restoreFocus(saved.focus);
+    saved.positions.forEach(function (position) {
+      var node = document.querySelector(position.selector);
+      if (node) { node.scrollLeft = position.x; node.scrollTop = resetDrawer && position.selector === "#drawer" ? 0 : position.y; }
+    });
+    window.scrollTo(saved.pageX, saved.pageY); updateMinimapViewport();
+  }
+  function matchesNode(n) {
+    if (ui.status !== "all" && n.display_status !== ui.status) return false;
+    var query = ui.query.trim().toLocaleLowerCase();
+    if (!query) return true;
+    var text = [n.id, n.seq, n.label, n.goal, (n.group_path || []).join(" ")].join(" ").toLocaleLowerCase();
+    return query.split(/\s+/).every(function (word) { return text.indexOf(word) >= 0; });
+  }
+  function graphContext() {
+    var all = Object.create(null), upstream = Object.create(null), downstream = Object.create(null), nodes = nodeMap();
+    function walk(id, reverse, found) {
+      var queue = [id];
+      while (queue.length) {
+        var current = queue.shift(), node = nodes[current];
+        if (!node) continue;
+        var links = reverse ? node.upstream.map(function (u) { return u.id; }) : node.downstream;
+        links.forEach(function (next) { if (next !== id && !found[next]) { found[next] = true; all[next] = true; queue.push(next); } });
+      }
+    }
+    if (ui.node && nodes[ui.node]) { all[ui.node] = true; walk(ui.node, true, upstream); walk(ui.node, false, downstream); }
+    return { all: all, upstream: upstream, downstream: downstream };
+  }
+  function updateGraphHighlights() {
+    var nodes = nodeMap(), context = graphContext(), filtering = !!ui.query.trim() || ui.status !== "all";
+    var visible = Object.create(null), matches = DATA.nodes.filter(matchesNode), selected = ui.node ? nodes[ui.node] : null;
+    DATA.nodes.forEach(function (n) { visible[n.id] = (!filtering && !selected) || context.all[n.id] || (filtering && matchesNode(n)); });
+    document.querySelectorAll(".node[data-node], .map-node[data-node]").forEach(function (card) {
+      var id = card.getAttribute("data-node");
+      card.classList.toggle("dim", !visible[id]);
+      card.classList.toggle("sel", id === ui.node);
+      card.classList.toggle("match", filtering && matchesNode(nodes[id]));
+      card.classList.toggle("related", !!context.all[id] && id !== ui.node);
+      if (card.classList.contains("node")) card.setAttribute("aria-pressed", id === ui.node ? "true" : "false");
+    });
+    document.querySelectorAll(".edge[data-from]").forEach(function (path) {
+      var from = path.getAttribute("data-from"), to = path.getAttribute("data-to");
+      var related = !!selected && ((from === ui.node || context.upstream[from]) && (to === ui.node || context.upstream[to]) ||
+        (from === ui.node || context.downstream[from]) && (to === ui.node || context.downstream[to]));
+      var loop = path.classList.contains("loop");
+      path.classList.toggle("dim", !visible[from] || !visible[to]);
+      path.classList.toggle("hot", !loop && related);
+      if (!loop) path.setAttribute("marker-end", "url(#" + (related || path.classList.contains("crit") ? "arr-hot" : "arr") + ")");
+    });
+    document.getElementById("node-search").value = ui.query;
+    document.getElementById("status-filter").value = ui.status;
+    document.getElementById("find-next").disabled = !matches.length;
+    document.getElementById("locate-selected").disabled = !selected;
+    document.getElementById("search-result").textContent = filtering ? "匹配 " + matches.length + " / " + DATA.nodes.length + " 个节点 · 其他节点弱化" :
+      DATA.nodes.length + " 个节点 · " + DATA.layout.lanes.length + " 个泳道 · " + DATA.order.waves.length + " 个批次";
+    document.getElementById("graph-context").textContent = selected ? "选中：" + selected.label + " · 上游 " + Object.keys(context.upstream).length + " / 下游 " + Object.keys(context.downstream).length :
+      ui.zoom < 0.85 ? "全图概览 · 点击节点看详情，1:1 阅读全部内容" : "点击节点追踪上下游；点击顶部状态数字定位工作";
+  }
+  function locateNode(id) {
+    var p = DATA.layout.nodes[id], scroll = document.getElementById("canvas-scroll");
+    if (!p) return;
+    if (ui.zoom < 0.85) setZoom(0.85);
+    scroll.scrollLeft = (p.x + p.w / 2) * ui.zoom - scroll.clientWidth / 2;
+    scroll.scrollTop = (p.y + p.h / 2) * ui.zoom - scroll.clientHeight / 2;
+    updateMinimapViewport();
+  }
+  function findNext() {
+    var matches = DATA.nodes.filter(matchesNode), index = matches.findIndex(function (n) { return n.id === ui.node; });
+    if (!matches.length) return;
+    var id = matches[(index + 1) % matches.length].id;
+    select(id); locateNode(id);
+  }
+  function focusStatus(status) {
+    ui.query = ""; ui.status = status;
+    setView("graph"); select(null); findNext(); updateGraphHighlights(); writeHash();
+  }
+
+  /* ---------------- header & summary ---------------- */
+  function renderHeader() {
+    document.getElementById("title").textContent = DATA.meta.title || "任务图";
+    var goal = document.getElementById("goal");
+    goal.textContent = "";
+    goal.appendChild(el("b", { text: "总目标：" }));
+    goal.appendChild(document.createTextNode(DATA.meta.goal && DATA.meta.goal.label ? DATA.meta.goal.label : DATA.meta.title));
+    var live = document.getElementById("live");
+    var label = live.querySelector("span");
+    if (CONFIG.live) {
+      var lost = ui.lastOk === false;
+      live.className = "live " + (lost ? "lost" : "on");
+      label.textContent = lost ? "连接中断 · 显示 " + fmtTime(DATA.meta.generated_at) + " 的数据，正在重试" :
+        "实时 · 每 " + (CONFIG.poll_ms / 1000) + " 秒刷新 · 最近 " + fmtTime(DATA.meta.generated_at).slice(6);
+    } else {
+      live.className = "live";
+      label.textContent = "静态快照 · 生成于 " + fmtTime(DATA.meta.generated_at);
+    }
+  }
+
+  function orderedIds() { var out = []; DATA.order.waves.forEach(function (w) { out = out.concat(w); }); return out; }
+
+  function renderSummary() {
+    var nodes = nodeMap();
+    var rail = document.getElementById("rail");
+    rail.textContent = "";
+    DATA.order.waves.forEach(function (wave, wi) {
+      if (wi > 0) rail.appendChild(el("span", { class: "gap", "aria-hidden": "true" }));
+      wave.forEach(function (id) {
+        var n = nodes[id];
+        rail.appendChild(el("span", {
+          class: "s-" + n.display_status + (ui.node === id ? " sel" : ""), role: "button", tabindex: "-1",
+          title: n.seq + " " + n.label + " · " + STATUS[n.display_status], onclick: function () { select(id); }
+        }));
+      });
+    });
+    var k = DATA.kpi;
+    var figs = document.getElementById("figures");
+    figs.textContent = "";
+    function fig(value, label, alert, status) {
+      figs.appendChild(el(status ? "button" : "div", { class: "fig" + (alert ? " alert" : "") + (status ? " action" : ""),
+        type: status ? "button" : null, "aria-label": status ? "定位" + label + "节点，共 " + value + " 个" : null,
+        onclick: status ? function () { focusStatus(status); } : null }, [el("b", { text: String(value) }), el("small", { text: label })]));
+    }
+    fig(k.done + "/" + k.effective_total, "节点完成");
+    fig(Math.round(k.estimate_ratio * 100) + "%", "按预估加权");
+    fig(k.in_progress, "进行中", false, "in_progress");
+    fig(k.ready, "可启动", false, "ready");
+    fig(k.blocked, "阻断", k.blocked > 0, "blocked");
+    if (k.loop_rounds) fig(k.loop_rounds, "返工轮次");
+    if (k.skipped) fig(k.skipped, "已跳过·不计完成");
+    var v = document.getElementById("verdict");
+    v.textContent = "";
+    var r = DATA.readiness;
+    v.className = "verdict" + (r.complete ? " ok" : "");
+    v.appendChild(el("span", { class: "tag", text: r.complete ? "总目标已验收" : "尚未完成" }));
+    if (r.complete) v.appendChild(el("span", { text: r.skipped.length ? "有 " + r.skipped.length + " 个节点按理由跳过" : "所有节点与总目标验收都有证据" }));
+    else {
+      var reasons = el("details", { id: "readiness-details", open: !!ui.readinessOpen }, [el("summary", { text: "查看未完成原因（" + r.reasons.length + "）" }), el("p", { text: r.reasons.join("；") })]);
+      reasons.addEventListener("toggle", function () { ui.readinessOpen = reasons.open; });
+      v.appendChild(reasons);
+    }
+    var attn = k.blocked + (DATA.readiness.complete ? 0 : 0);
+    document.getElementById("attn-count").textContent = attn ? String(attn) : "";
+  }
+
+  /* ---------------- graph ---------------- */
+  function roundedPath(pts, r) {
+    var clean = [pts[0]];
+    for (var i = 1; i < pts.length; i++) {
+      var a = clean[clean.length - 1], b = pts[i];
+      if (Math.abs(a[0] - b[0]) < 0.5 && Math.abs(a[1] - b[1]) < 0.5) continue;
+      clean.push(b);
+    }
+    var d = "M" + clean[0][0] + "," + clean[0][1];
+    for (var j = 1; j < clean.length - 1; j++) {
+      var p = clean[j - 1], c = clean[j], n = clean[j + 1];
+      var l1 = Math.hypot(c[0] - p[0], c[1] - p[1]), l2 = Math.hypot(n[0] - c[0], n[1] - c[1]);
+      var rr = Math.min(r, l1 / 2, l2 / 2);
+      var x1 = c[0] + (p[0] - c[0]) / l1 * rr, y1 = c[1] + (p[1] - c[1]) / l1 * rr;
+      var x2 = c[0] + (n[0] - c[0]) / l2 * rr, y2 = c[1] + (n[1] - c[1]) / l2 * rr;
+      d += " L" + x1.toFixed(1) + "," + y1.toFixed(1) + " Q" + c[0] + "," + c[1] + " " + x2.toFixed(1) + "," + y2.toFixed(1);
+    }
+    var last = clean[clean.length - 1];
+    return d + " L" + last[0] + "," + last[1];
+  }
+
+  function renderGraph() {
+    var canvas = document.getElementById("canvas");
+    var L = DATA.layout;
+    canvas.textContent = "";
+    if (!DATA.nodes.length) {
+      canvas.style.width = "100%";
+      canvas.style.height = "240px";
+      document.getElementById("sizer").style.cssText = "width:100%;height:240px";
+      canvas.appendChild(el("div", { class: "empty", style: "width:600px" }, ["图里还没有节点。用 ", el("code", { class: "mono", text: "task_graph.py add-node" }), " 或 ", el("code", { class: "mono", text: "init --spec" }), " 添加。"]));
+      document.getElementById("minimap").hidden = true;
+      updateGraphHighlights();
+      return;
+    }
+    var W = L.width, H = L.height, gut = L.col_w - L.node_w, half = ((L.row_h || 132) - L.node_h) / 2;
+    canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    var nodes = nodeMap(), groups = groupMap();
+    var pos = L.nodes;
+    var s = svg("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img", "aria-labelledby": "tg-graph-title" });
+    var t = svg("title", { id: "tg-graph-title" }); t.textContent = (DATA.meta.title || "任务图") + "：依赖与返工回边"; s.appendChild(t);
+    var defs = svg("defs");
+    [["arr", "var(--track)"], ["arr-hot", "var(--ink)"], ["arr-loop", "var(--shunt)"]].forEach(function (m) {
+      var mk = svg("marker", { id: m[0], viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" });
+      var p = svg("path", { d: "M0,1 L9,5 L0,9 z" }); p.style.fill = m[1]; mk.appendChild(p); defs.appendChild(mk);
+    });
+    s.appendChild(defs);
+    // column bands = execution waves
+    for (var c = 0; c < L.columns; c++) {
+      if (c % 2 === 1) s.appendChild(svg("rect", { class: "col-band", x: L.lane_label_w + L.left_pad + c * L.col_w - gut / 2, y: 0, width: L.col_w, height: H }));
+    }
+    L.lanes.forEach(function (lane, i) {
+      if (i > 0) s.appendChild(svg("line", { class: "lane-rule", x1: 0, x2: W, y1: lane.y - 7, y2: lane.y - 7 }));
+    });
+    var selected = ui.node && nodes[ui.node] ? nodes[ui.node] : null;
+    var related = graphContext().all;
+    var critical = DATA.order.critical_path, critPairs = Object.create(null);
+    for (var ci = 1; ci < critical.length; ci++) critPairs[critical[ci - 1] + ">" + critical[ci]] = true;
+
+    // ports: spread multiple edges along a side, ordered by the other end's y
+    var outs = Object.create(null), ins = Object.create(null);
+    DATA.edges.forEach(function (e) { (outs[e.from] = outs[e.from] || []).push(e); (ins[e.to] = ins[e.to] || []).push(e); });
+    function portY(list, e, id, otherKey) {
+      list.sort(function (a, b) { return pos[a[otherKey]].y - pos[b[otherKey]].y || (a[otherKey] < b[otherKey] ? -1 : 1); });
+      var k = list.indexOf(e), n = list.length, p = pos[id];
+      if (n === 1) return p.y + p.h / 2;
+      var top = p.y + 16, span = p.h - 32;
+      return top + span * k / (n - 1);
+    }
+    var gutterUse = Object.create(null), corridorUse = Object.create(null);
+    function lane(key, use, step, spread) { use[key] = (use[key] || 0) + 1; var i = use[key] - 1; var sign = i % 2 === 0 ? 1 : -1; return sign * Math.ceil(i / 2) * step * (spread || 1); }
+    function hitsNode(y, x1, x2, skip) {
+      var lo = Math.min(x1, x2), hi = Math.max(x1, x2);
+      return Object.keys(pos).some(function (id) {
+        if (skip[id]) return false;
+        var p = pos[id];
+        return y > p.y - 6 && y < p.y + p.h + 6 && hi > p.x - 6 && lo < p.x + p.w + 6;
+      });
+    }
+    var edgeLayer = svg("g"), chipLayer = svg("g");
+    DATA.edges.forEach(function (e) {
+      var a = pos[e.from], b = pos[e.to];
+      if (!a || !b) return;
+      var ax = a.x + a.w + 6, ay = portY(outs[e.from], e, e.from, "to");
+      var bx = b.x - 7, by = portY(ins[e.to], e, e.to, "from");
+      var pts, skip = Object.create(null); skip[e.from] = skip[e.to] = true;
+      var gxA = a.x + a.w + gut / 2 + lane("g" + a.col, gutterUse, 5);
+      if (b.col === a.col + 1) {
+        pts = [[ax, ay], [gxA, ay], [gxA, by], [bx, by]];
+      } else {
+        var gxB = b.x - gut / 2 + lane("g" + (b.col - 1), gutterUse, 5);
+        if (!hitsNode(ay, ax, gxB, skip)) pts = [[ax, ay], [gxB, ay], [gxB, by], [bx, by]];
+        else if (!hitsNode(by, gxA, bx, skip)) pts = [[ax, ay], [gxA, ay], [gxA, by], [bx, by]];
+        else {
+          var cy = b.y - half + lane("c" + Math.round(b.y), corridorUse, 5);
+          pts = [[ax, ay], [gxA, ay], [gxA, cy], [gxB, cy], [gxB, by], [bx, by]];
+        }
+      }
+      var cls = "edge" + (e.type === "soft" ? " soft" : "") + (critPairs[e.from + ">" + e.to] ? " crit" : "");
+      if (selected) cls += (e.from === selected.id || e.to === selected.id) ? " hot" : " dim";
+      var hot = cls.indexOf("hot") >= 0 || cls.indexOf("crit") >= 0;
+      var path = svg("path", { class: cls, d: roundedPath(pts, 8), "data-from": e.from, "data-to": e.to, "marker-end": "url(#" + (hot ? "arr-hot" : "arr") + ")" });
+      var tt = svg("title"); tt.textContent = (nodes[e.from].label + " → " + nodes[e.to].label) + (e.type === "soft" ? "（软依赖，只影响顺序）" : "（硬依赖）");
+      path.appendChild(tt);
+      edgeLayer.appendChild(path);
+    });
+    // rework back-edges: leave the node top, travel in the free gap above the row, turn down into the target top
+    DATA.loop_edges.forEach(function (le) {
+      var a = pos[le.from], b = pos[le.to];
+      if (!a || !b) return;
+      if (!le.count && !(selected && (selected.id === le.from || selected.id === le.to))) {
+        if (le.route === "retry") return; // unused self-retry stays quiet until it happens
+      }
+      var used = le.count > 0, labelX, labelY, d;
+      var off = lane("loop" + Math.round(a.y), corridorUse, 5);
+      if (le.from === le.to) {
+        var x1 = a.x + a.w - 56, x2 = a.x + a.w - 22, top = a.y - half + Math.min(off, 0);
+        d = roundedPath([[x1, a.y], [x1, top], [x2, top], [x2, a.y - 3]], 6);
+        labelX = (x1 + x2) / 2; labelY = top;
+      } else {
+        var sx = a.x + 40, ty = b.y - half + off, sy = a.y - half + off;
+        var tx = b.x + b.w - 40;
+        if (Math.abs(a.y - b.y) < 1) {
+          d = roundedPath([[sx, a.y], [sx, sy], [tx, sy], [tx, b.y - 3]], 8);
+          labelX = (sx + tx) / 2;
+        } else {
+          var gx = b.x + b.w + gut / 2 + lane("g" + b.col, gutterUse, 5);
+          d = roundedPath([[sx, a.y], [sx, sy], [gx, sy], [gx, ty], [tx, ty], [tx, b.y - 3]], 8);
+          labelX = sx; // the corner above the failing node: gutters carry other edges, this spot never does
+        }
+        labelY = sy;
+      }
+      var cls = "edge loop" + (used ? " used" : "");
+      if (selected && !(selected.id === le.from || selected.id === le.to)) cls += " dim";
+      var p = svg("path", { class: cls, d: d, "data-from": le.from, "data-to": le.to, "marker-end": "url(#arr-loop)" });
+      var tt = svg("title"); tt.textContent = nodes[le.from].label + " 出条件未通过时返回 " + nodes[le.to].label + "，已用 " + le.count + "/" + le.max + " 轮";
+      p.appendChild(tt);
+      edgeLayer.appendChild(p);
+      var text = (le.route === "retry" ? "重试 " : "返工 ") + le.count + "/" + le.max;
+      var w = text.length * 7 + 14;
+      var g = svg("g", { class: "edge loop", "data-from": le.from, "data-to": le.to });
+      g.appendChild(svg("rect", { class: "chip-bg", x: labelX - w / 2, y: labelY - 9, width: w, height: 18, rx: 4 }));
+      var tx2 = svg("text", { class: "chip-text", x: labelX, y: labelY + 4, "text-anchor": "middle" }); tx2.textContent = text;
+      g.appendChild(tx2);
+      chipLayer.appendChild(g);
+    });
+    s.appendChild(edgeLayer); s.appendChild(chipLayer);
+    canvas.appendChild(s);
+
+    // wave headers
+    for (var w = 0; w < L.columns; w++) {
+      var count = (DATA.order.waves[w] || []).length;
+      canvas.appendChild(el("div", { class: "wave-head", style: "left:" + (L.lane_label_w + L.left_pad + w * L.col_w) + "px;width:" + L.node_w + "px" },
+        [el("b", { text: "第 " + (w + 1) + " 批" }), count > 1 ? count + " 项可并行" : "1 项"]));
+    }
+    // lane labels
+    L.lanes.forEach(function (lane2) {
+      var g = groups[lane2.id];
+      var kids = [el("b", { text: lane2.label })];
+      if (g) {
+        var total = g.members.length - g.counts.skipped, done = g.counts.done;
+        kids.push(el("small", { text: (g.kind && g.kind !== "group" ? g.kind + " · " : "") + "完成 " + done + "/" + total + (g.counts.skipped ? " · 跳过 " + g.counts.skipped : "") }));
+        var meter = el("div", { class: "lane-meter" }, [el("i", { style: "width:" + (total ? Math.round(done / total * 100) : 0) + "%" })]);
+        kids.push(meter);
+        if (g.exit && g.exit.length) {
+          var met = g.exit.filter(function (x) { return x.met; }).length;
+          kids.push(el("div", { class: "gate" + (met === g.exit.length && g.closed ? " ok" : ""), text: "里程碑验收 " + met + "/" + g.exit.length }));
+        }
+      } else kids.push(el("small", { text: "未归入上级节点" }));
+      canvas.appendChild(el("div", { class: "lane-label", style: "top:" + lane2.y + "px;height:" + lane2.h + "px;width:" + (L.lane_label_w - 8) + "px" }, kids));
+    });
+    L.subgroups.forEach(function (sg) {
+      canvas.appendChild(el("div", { class: "subgroup", style: "left:" + sg.x + "px;top:" + sg.y + "px;width:" + sg.w + "px;height:" + sg.h + "px" }, [el("span", { text: sg.label })]));
+    });
+    // node cards
+    DATA.nodes.forEach(function (n) {
+      var p = pos[n.id];
+      if (!p) return;
+      var ec = exitCount(n);
+      var entryMet = !(n.unmet_entry || []).length;
+      var entryLamp = n.display_status === "skipped" ? "" : entryMet ? "green" : "red";
+      var exitLamp = n.display_status === "blocked" ? "red" : n.display_status === "done" ? "green" : n.status === "in_progress" ? (ec[0] > 0 ? "amber" : "hollow-amber") : "hollow";
+      var foot = [el("span", { text: "出 " + ec[0] + "/" + ec[1] })];
+      if (n.tree) foot.push(el("span", { class: n.tree_stale ? "loop" : "", text: !n.tree.found ? "树缺失" : n.tree_stale ? "树待重验" : "树 " + n.tree.leaves_done + "/" + n.tree.leaves_total }));
+      if (n.iteration) foot.push(el("span", { class: "loop", text: "第 " + (n.iteration + 1) + " 轮" }));
+      if (n.exec) foot.push(el("span", { class: "xb", title: "执行方式：" + execText(n.exec), text: execBadge(n.exec) }));
+      if (n.acceptance_issue) foot = [el("span", { class: "issue", text: "验收失效 · 查看原因" })];
+      var cls = "node s-" + n.display_status + (n.critical ? " critical" : "") + (ui.node === n.id ? " sel" : "") + (selected && !related[n.id] ? " dim" : "");
+      var kind = KIND[n.kind] ? " · " + KIND[n.kind] : "";
+      var card = el("button", {
+        type: "button", class: cls, "data-node": n.id, "data-focus-key": "graph-node:" + n.id,
+        style: "left:" + p.x + "px;top:" + p.y + "px;width:" + p.w + "px;height:" + p.h + "px",
+        "aria-label": n.seq + " " + n.label + "，" + STATUS[n.display_status],
+        title: n.label + " · " + STATUS[n.display_status] + (n.acceptance_issue ? "：" + n.acceptance_issue : ""),
+        onclick: function () { select(ui.node === n.id ? null : n.id); }
+      }, [
+        el("span", { class: "lamp in " + entryLamp, title: "入条件：" + (entryMet ? "已满足" : "未满足"), "aria-hidden": "true" }),
+        el("span", { class: "n-top" }, [el("span", { class: "n-seq", text: n.seq || "" }), el("span", { text: kind.replace(" · ", "") }), el("span", { class: "n-status", text: STATUS[n.display_status] })]),
+        el("span", { class: "n-label", text: n.label }),
+        el("span", { class: "n-foot" }, foot),
+        el("span", { class: "lamp out " + exitLamp, title: n.acceptance_issue || "出条件：" + ec[0] + "/" + ec[1] + " 已验证", "aria-hidden": "true" })
+      ]);
+      canvas.appendChild(card);
+    });
+    renderMinimap(); applyZoom(); updateGraphHighlights();
+  }
+
+  function legend() {
+    var box = document.getElementById("legend");
+    box.textContent = "";
+    function lampItem(cls, label) { return el("span", {}, [el("i", { class: "l", style: cls }), label]); }
+    box.appendChild(lampItem("background:var(--lamp-green)", "左灯=入条件，右灯=出条件；绿=满足/已验证"));
+    box.appendChild(lampItem("background:var(--lamp-red)", "红=入条件未满足或阻断"));
+    box.appendChild(lampItem("background:var(--lamp-amber)", "黄=进行中，部分出条件已验证"));
+    function lineItem(style, label, marker) {
+      var s = svg("svg", { viewBox: "0 0 34 10", "aria-hidden": "true" });
+      var l = svg("line", { x1: 1, y1: 5, x2: 33, y2: 5, style: style });
+      s.appendChild(l);
+      return el("span", {}, [s, label]);
+    }
+    box.appendChild(lineItem("stroke:var(--track);stroke-width:1.4", "硬依赖：上游完成才可启动"));
+    box.appendChild(lineItem("stroke:var(--track-soft);stroke-width:1.4;stroke-dasharray:2 5", "软依赖：只影响顺序"));
+    box.appendChild(lineItem("stroke:var(--ink);stroke-width:2.4", "关键路径（粗线、顶部粗框）"));
+    box.appendChild(lineItem("stroke:var(--shunt);stroke-width:1.8;stroke-dasharray:6 4", "返工回边（已用/上限轮次）"));
+  }
+
+  function fitZoom() {
+    var scroll = document.getElementById("canvas-scroll"), L = DATA.layout;
+    return Math.max(0.01, Math.min(1, (scroll.clientWidth - 16) / L.width, (scroll.clientHeight - 16) / L.height));
+  }
+  function applyZoom() {
+    var L = DATA.layout;
+    if (ui.zoom === null) ui.zoom = fitZoom();
+    var z = ui.zoom, canvas = document.getElementById("canvas");
+    canvas.style.transform = "scale(" + z + ")";
+    canvas.style.setProperty("--graph-zoom", z);
+    canvas.classList.toggle("low-detail", z < 0.85);
+    canvas.classList.toggle("readable-overview", z >= 0.5 && z < 0.85);
+    if (DATA.nodes.length) document.getElementById("sizer").style.cssText = "width:" + Math.ceil(L.width * z) + "px;height:" + Math.ceil(L.height * z) + "px";
+    document.getElementById("zoom-val").textContent = Math.round(z * 100) + "%";
+    updateMinimapViewport();
+  }
+  function setZoom(value, point, mode) {
+    var scroll = document.getElementById("canvas-scroll"), old = ui.zoom || 1;
+    var x = point ? point.x : scroll.clientWidth / 2, y = point ? point.y : scroll.clientHeight / 2;
+    var graphX = (scroll.scrollLeft + x) / old, graphY = (scroll.scrollTop + y) / old;
+    ui.zoomMode = mode || "manual";
+    ui.zoom = Math.max(0.01, Math.min(2, value));
+    applyZoom();
+    scroll.scrollLeft = ui.zoomMode === "fit" ? 0 : graphX * ui.zoom - x;
+    scroll.scrollTop = ui.zoomMode === "fit" ? 0 : graphY * ui.zoom - y;
+    updateMinimapViewport(); updateGraphHighlights();
+  }
+  function renderMinimap() {
+    var map = document.getElementById("map-svg"), L = DATA.layout;
+    document.getElementById("minimap").hidden = !DATA.nodes.length;
+    map.textContent = "";
+    map.setAttribute("viewBox", "0 0 " + L.width + " " + L.height);
+    DATA.nodes.forEach(function (n) {
+      var p = L.nodes[n.id];
+      if (p) map.appendChild(svg("rect", { class: "map-node " + n.display_status, "data-node": n.id, x: p.x, y: p.y, width: p.w, height: p.h, rx: 6 }));
+    });
+    map.appendChild(svg("rect", { class: "map-viewport", id: "map-viewport", x: 0, y: 0, width: 1, height: 1 }));
+  }
+  function updateMinimapViewport() {
+    var rect = document.getElementById("map-viewport"), scroll = document.getElementById("canvas-scroll"), z = ui.zoom || 1;
+    if (!rect) return;
+    rect.setAttribute("x", scroll.scrollLeft / z); rect.setAttribute("y", scroll.scrollTop / z);
+    rect.setAttribute("width", Math.min(DATA.layout.width, scroll.clientWidth / z));
+    rect.setAttribute("height", Math.min(DATA.layout.height, scroll.clientHeight / z));
+  }
+  document.querySelectorAll("[data-zoom]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var kind = b.getAttribute("data-zoom");
+      if (kind === "selected") { if (ui.node) locateNode(ui.node); return; }
+      if (kind === "fit") setZoom(fitZoom(), null, "fit");
+      else if (kind === "actual") setZoom(1);
+      else setZoom((ui.zoom || 1) * (kind === "in" ? 1.2 : 1 / 1.2));
+    });
+  });
+
+  document.getElementById("node-search").addEventListener("input", function (ev) {
+    ui.query = ev.target.value; updateGraphHighlights(); writeHash();
+  });
+  document.getElementById("node-search").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); findNext(); }
+    if (ev.key === "Escape" && ui.query) { ev.preventDefault(); ev.stopPropagation(); ui.query = ""; updateGraphHighlights(); writeHash(); }
+  });
+  document.getElementById("status-filter").addEventListener("change", function (ev) {
+    ui.status = ev.target.value; updateGraphHighlights(); writeHash();
+  });
+  document.getElementById("find-next").addEventListener("click", findNext);
+
+  var graphScroll = document.getElementById("canvas-scroll"), pan = null;
+  graphScroll.addEventListener("scroll", updateMinimapViewport, { passive: true });
+  graphScroll.addEventListener("wheel", function (ev) {
+    if (!ev.ctrlKey && !ev.metaKey) return;
+    ev.preventDefault();
+    var bounds = graphScroll.getBoundingClientRect();
+    setZoom((ui.zoom || 1) * Math.exp(-ev.deltaY * 0.002), { x: ev.clientX - bounds.left, y: ev.clientY - bounds.top });
+  }, { passive: false });
+  graphScroll.addEventListener("pointerdown", function (ev) {
+    if (ev.button !== 0 || ev.pointerType === "touch" || ev.target.closest("button, a, input, select, summary")) return;
+    pan = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, left: graphScroll.scrollLeft, top: graphScroll.scrollTop, moved: false };
+    graphScroll.setPointerCapture(ev.pointerId);
+  });
+  graphScroll.addEventListener("pointermove", function (ev) {
+    if (!pan || pan.id !== ev.pointerId) return;
+    var dx = ev.clientX - pan.x, dy = ev.clientY - pan.y;
+    if (!pan.moved && Math.hypot(dx, dy) < 4) return;
+    pan.moved = true; graphScroll.classList.add("dragging"); ev.preventDefault();
+    graphScroll.scrollLeft = pan.left - dx; graphScroll.scrollTop = pan.top - dy;
+  });
+  function endPan(ev) {
+    if (!pan || pan.id !== ev.pointerId) return;
+    pan = null; graphScroll.classList.remove("dragging");
+    if (graphScroll.hasPointerCapture(ev.pointerId)) graphScroll.releasePointerCapture(ev.pointerId);
+  }
+  graphScroll.addEventListener("pointerup", endPan);
+  graphScroll.addEventListener("pointercancel", endPan);
+  graphScroll.addEventListener("focusin", function (ev) {
+    var card = ev.target.closest(".node");
+    if (card && !ui.restoringFocus) card.scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
+  graphScroll.addEventListener("keydown", function (ev) {
+    var card = ev.target.closest(".node"), dirs = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (card && dirs[ev.key]) {
+      ev.preventDefault();
+      var id = card.getAttribute("data-node"), source = DATA.layout.nodes[id], dir = dirs[ev.key], nearest = null, score = Infinity;
+      DATA.nodes.forEach(function (n) {
+        var p = DATA.layout.nodes[n.id];
+        if (!p || n.id === id) return;
+        var dx = p.x - source.x, dy = p.y - source.y, along = dx * dir[0] + dy * dir[1];
+        if (along <= 0) return;
+        var cross = Math.abs(dx * dir[1] - dy * dir[0]), distance = along + cross * 3;
+        if (distance < score) { score = distance; nearest = n.id; }
+      });
+      var target = nearest && nodeElement(nearest);
+      if (target) target.focus();
+    } else if (ev.key === "+" || ev.key === "=" || ev.key === "-") {
+      ev.preventDefault(); setZoom((ui.zoom || 1) * (ev.key === "-" ? 1 / 1.2 : 1.2));
+    } else if (ev.key === "Home") { ev.preventDefault(); setZoom(fitZoom(), null, "fit"); }
+  });
+
+  var mapSvg = document.getElementById("map-svg"), mapPointer = null;
+  function mapNavigate(ev) {
+    var matrix = mapSvg.getScreenCTM();
+    if (!matrix) return;
+    var point = mapSvg.createSVGPoint(); point.x = ev.clientX; point.y = ev.clientY;
+    point = point.matrixTransform(matrix.inverse());
+    graphScroll.scrollLeft = point.x * ui.zoom - graphScroll.clientWidth / 2;
+    graphScroll.scrollTop = point.y * ui.zoom - graphScroll.clientHeight / 2;
+    updateMinimapViewport();
+  }
+  mapSvg.addEventListener("pointerdown", function (ev) {
+    if (ev.button !== 0) return;
+    ev.preventDefault(); mapPointer = ev.pointerId; mapSvg.setPointerCapture(ev.pointerId); mapSvg.focus(); mapNavigate(ev);
+  });
+  mapSvg.addEventListener("pointermove", function (ev) { if (mapPointer === ev.pointerId) mapNavigate(ev); });
+  function endMapPan(ev) { if (mapPointer === ev.pointerId) { mapPointer = null; if (mapSvg.hasPointerCapture(ev.pointerId)) mapSvg.releasePointerCapture(ev.pointerId); } }
+  mapSvg.addEventListener("pointerup", endMapPan); mapSvg.addEventListener("pointercancel", endMapPan);
+  mapSvg.addEventListener("keydown", function (ev) {
+    var steps = { ArrowLeft: [-120, 0], ArrowRight: [120, 0], ArrowUp: [0, -120], ArrowDown: [0, 120] }, step = steps[ev.key];
+    if (step) { ev.preventDefault(); graphScroll.scrollLeft += step[0]; graphScroll.scrollTop += step[1]; updateMinimapViewport(); }
+  });
+
+  /* ---------------- drawer ---------------- */
+  function critItem(ok, text, evidence, extra) {
+    var mark = ok === true ? "ok" : ok === false ? "no" : "wait";
+    return el("li", {}, [el("i", { class: "mk " + mark, "aria-label": ok === true ? "已满足" : "未满足" }), el("span", {}, [text].concat(extra || [])),
+      evidence ? el("span", { class: "ev" }, ["证据：", el("code", { text: evidence })]) : null]);
+  }
+  function renderTree(tree) {
+    if (!tree.found) return el("div", { class: "callout" }, ["关联的执行树 ", el("code", { class: "mono", text: tree.tree_id }), " 找不到状态文件，可能已被清理或在另一台机器上。"]);
+    var kids = Object.create(null);
+    tree.nodes.forEach(function (t) { (kids[t.parent_id || "__root"] = kids[t.parent_id || "__root"] || []).push(t); });
+    function row(t) {
+      var leaf = t.is_leaf === true || !kids[t.id];
+      var meta = TREE_STATUS[t.status] || t.status;
+      if (t.delegation_level) meta += " · " + t.delegation_level;
+      return el("div", { class: "t-row" + (tree.focus === t.id ? " focus" : "") }, [
+        el("i", { class: "dot " + t.status }), el("span", { class: "t-label" }, [t.label, leaf && t.id !== "n0" ? " " : "", leaf && t.id !== "n0" ? el("span", { class: "leaf", text: "叶子" }) : null, tree.focus === t.id ? el("span", { class: "muted", text: " ← 当前焦点" }) : null]),
+        el("span", { class: "t-meta", text: meta })
+      ]);
+    }
+    function build(t, depth) {
+      var children = kids[t.id] || [];
+      if (!children.length) return el("li", {}, [row(t)]);
+      var key = tree.tree_id + ":" + t.id;
+      var opened = Object.prototype.hasOwnProperty.call(ui.treeOpen, key) ? ui.treeOpen[key] : depth < 3;
+      var det = el("details", { open: opened, "data-tree-key": key }, [el("summary", { style: "display:flex", "data-focus-key": "tree:" + key }, [el("span", { class: "caret", text: "▶", "aria-hidden": "true" }), row(t)])]);
+      det.addEventListener("toggle", function () { ui.treeOpen[key] = det.open; });
+      var ul = el("ul");
+      children.forEach(function (c) { ul.appendChild(build(c, depth + 1)); });
+      det.appendChild(ul);
+      return el("li", {}, [det]);
+    }
+    var root = el("ul", { class: "tree" });
+    (kids.__root || []).forEach(function (t) { root.appendChild(build(t, 0)); });
+    var total = tree.leaves_total || 0;
+    var meter = el("div", { class: "meter", style: "margin:4px 0 10px" }, [
+      el("i", { class: "m-done", style: "width:" + (total ? tree.leaves_done / total * 100 : 0) + "%" }),
+      el("i", { class: "m-skip", style: "width:" + (total ? tree.leaves_skipped / total * 100 : 0) + "%" })
+    ]);
+    return el("div", {}, [meter, root]);
+  }
+
+  function renderDrawer() {
+    var drawer = document.getElementById("drawer"), stage = document.getElementById("stage");
+    var nodes = nodeMap();
+    var n = ui.node ? nodes[ui.node] : null;
+    if (!n) { drawer.hidden = true; stage.classList.remove("with-drawer"); return; }
+    var keepScroll = drawer.scrollTop;
+    drawer.hidden = false; stage.classList.add("with-drawer");
+    drawer.textContent = "";
+    var groups = groupMap();
+    var head = el("div", { class: "d-head" }, [
+      el("div", { class: "row" }, [el("span", { class: "sign", style: "font-size:18px;font-weight:600", text: n.seq || "" }), pill(n.display_status), KIND[n.kind] ? el("span", { class: "pill", text: KIND[n.kind] }) : null, el("span", { class: "mono muted", text: n.id }),
+        el("button", { class: "btn d-close", type: "button", text: "关闭", onclick: function () { select(null); } })]),
+      el("h2", { id: "drawer-title", text: n.label }),
+      el("div", { class: "crumb", text: (n.group_path.length ? "上级节点：" + n.group_path.join(" › ") : "未归入上级节点") + (n.critical ? " · 在关键路径上" : "") + " · 预估 " + n.estimate })
+    ]);
+    drawer.appendChild(head);
+    drawer.setAttribute("aria-labelledby", "drawer-title");
+    var body = el("div", { class: "d-body" });
+    if (n.goal) body.appendChild(el("p", { style: "margin:10px 0 0", text: n.goal }));
+    if (n.acceptance_issue) body.appendChild(el("div", { class: "callout", role: "status", text: "验收已失效：" + n.acceptance_issue }));
+    if (n.display_status === "blocked" && n.blocked_reason) body.appendChild(el("div", { class: "callout", text: "阻断：" + n.blocked_reason }));
+    if (n.status === "skipped" && n.skip) body.appendChild(el("div", { class: "callout info", text: "跳过理由：" + n.skip.reason + "；重开条件：" + n.skip.reopen_when }));
+
+    // entry
+    var entryList = el("ul", { class: "crit-list" });
+    n.upstream.forEach(function (u) {
+      var up = nodes[u.id];
+      var ok = u.type === "soft" ? null : up.display_status === "done";
+      entryList.appendChild(critItem(u.type === "soft" ? undefined : ok, "", null, [
+        u.type === "soft" ? "建议先做 " : "依赖 ", el("button", { class: "linkish", type: "button", text: up.seq + " " + up.label, onclick: function () { select(up.id); } }), " ", pill(up.display_status)
+      ]));
+    });
+    (n.depends_on || []).filter(function (r) { return r.indexOf("G:") === 0; }).forEach(function (r) {
+      var g = groups[r.slice(2)];
+      if (g) entryList.appendChild(critItem(g.done, "上级节点「" + g.label + "」全部完成并通过里程碑验收", null));
+    });
+    (n.entry || []).forEach(function (x) { entryList.appendChild(critItem(!!x.met, x.text, x.evidence)); });
+    var unmetN = n.unmet_entry.length;
+    var entrySec = el("section", { class: "d-sec" }, [el("h3", {}, ["入条件", el("small", { text: unmetN ? unmetN + " 项未满足" : n.status === "pending" ? "已满足，可启动" : "当前已满足" })])]);
+    if (!entryList.childNodes.length) entrySec.appendChild(el("p", { class: "muted", style: "margin:0 0 8px;font-size:13px", text: "没有前置依赖或条件，图一开始就能启动。" }));
+    else entrySec.appendChild(entryList);
+    body.appendChild(entrySec);
+
+    // exit
+    var ec = exitCount(n);
+    var exitList = el("ul", { class: "crit-list" });
+    (n.exit || []).forEach(function (x) {
+      exitList.appendChild(critItem(n.acceptance_issue ? false : x.met ? true : (n.status === "in_progress" || n.display_status === "blocked") ? false : undefined, x.text, x.evidence, [" ", el("span", { class: "pill", text: CHECK[x.check] || x.check })]));
+    });
+    var exitSec = el("section", { class: "d-sec" }, [el("h3", {}, ["出条件", el("small", { text: n.acceptance_issue ? "保留历史证据，需重新验收" : ec[0] + "/" + ec[1] + " 已验证" + (n.tree ? "，另需执行树根完成" : "") })]), exitList]);
+    var policy = n.on_fail || {};
+    var used = 0;
+    DATA.loop_edges.forEach(function (le) { if (le.from === n.id) used = le.count; });
+    var route = policy.route === "goto" && nodes[policy.target] ? "返回「" + nodes[policy.target].label + "」重做，并重置其下游" :
+      policy.route === "escalate" ? "直接阻断并交人处理" : "在本节点重试";
+    exitSec.appendChild(el("p", { class: "muted", style: "font-size:12.5px;margin:10px 0 6px" , text: "未通过时：" + route + "；最多 " + policy.max_iterations + " 轮，已用 " + used + " 轮。同一验收门连续失败 3 次会自动阻断，要求先重审假设。" }));
+    DATA.loop_edges.forEach(function (le) {
+      if (le.to !== n.id || le.from === n.id || !le.count) return;
+      var src = nodes[le.from];
+      exitSec.appendChild(el("div", { class: "callout info" }, ["被下游 ", el("button", { class: "linkish", type: "button", text: src.seq + " " + src.label, onclick: function () { select(src.id); } }),
+        " 返工 " + le.count + "/" + le.max + " 次，当前是第 " + ((n.iteration || 0) + 1) + " 轮；出条件证据已清空，需要重新验证。"]));
+    });
+    body.appendChild(exitSec);
+
+    // execution profile (requested intent, never acceptance evidence)
+    var xv = n.exec_view || { declared: false, summary: "", findings: [], conflicts: [] };
+    var x = n.exec;
+    var execSec = el("section", { class: "d-sec" }, [el("h3", {}, ["执行方式", el("small", { text: xv.declared ? "已声明 · 计划派发的请求值" : "未声明 · 按默认" })]),
+      el("p", { class: "exec-sum", text: xv.summary })]);
+    if (x) {
+      var kv = el("dl", { class: "kv" });
+      var usesModel = x.mode !== "human";
+      [["方式", MODE_FULL[x.mode] + (x.mode === "fanout" ? "，同时最多 " + x.width + " 个" : "")],
+       ["模型档", usesModel ? TIER[x.tier] || x.tier : "—"],
+       ["effort", usesModel ? (x.effort === "inherit" ? "继承当前会话" : x.effort) : "—"],
+       ["写入范围", x.writes === null || x.writes === undefined ? "未声明" : x.writes.length ? x.writes.join("、") : "只读"],
+       ["隔离", x.isolation === "worktree" ? "独立 worktree" : "共享工作区"],
+       ["复核者", x.reviewer ? REVIEWER[x.reviewer] || x.reviewer : "—"],
+       ["理由", x.why || "—"]].forEach(function (row) { kv.appendChild(el("dt", { text: row[0] })); kv.appendChild(el("dd", { text: row[1] })); });
+      execSec.appendChild(kv);
+    }
+    var hints = el("ul", { class: "hint-list" });
+    (xv.findings || []).forEach(function (f) {
+      if (f.level === "warn") execSec.appendChild(el("div", { class: "callout", text: f.text }));
+      else hints.appendChild(el("li", { text: f.text }));
+    });
+    (xv.conflicts || []).forEach(function (c) {
+      var other = nodes[c.id];
+      if (!other) return;
+      execSec.appendChild(el("div", { class: "callout" }, ["可能与 ", el("button", { class: "linkish", type: "button", text: other.seq + " " + other.label, onclick: function () { select(other.id); } }),
+        " 同时运行且写入重叠（" + c.paths.join("；") + "）：不要同时派发，先做一个或拆开写入范围。"]));
+    });
+    if (!xv.declared) hints.insertBefore(el("li", { text: n.kind === "gate" ? "关卡：由人裁决，不派模型" : "未声明执行方式：默认由主会话执行，继承当前模型与 effort（单代理基线）" }), hints.firstChild);
+    if (hints.childNodes.length) execSec.appendChild(hints);
+    if (n.kind !== "gate" && !(n.exec && n.exec.mode === "human")) {
+      execSec.appendChild(el("p", { class: "muted", style: "font-size:12px;margin:10px 0 6px", text: "这是计划派发的档位，不是验收证据；实际运行的模型与 effort 以宿主记录为准（Claude Code 的 /tasks、Codex 子线程记录）。有执行树时，叶子默认继承这里的档位。" }));
+    }
+    body.appendChild(execSec);
+
+    // tree
+    var mode = n.participation === "stepwise" ? "逐层参与：每层由人选择后再下钻" : "连续执行：已授权范围内按依赖推进";
+    var treeSec = el("section", { class: "d-sec" }, [el("h3", {}, ["执行树", n.tree && n.tree.found ? el("small", { text: "叶子 " + n.tree.leaves_done + "/" + n.tree.leaves_total + " 完成 · 根" + (TREE_STATUS[n.tree.root_status] || n.tree.root_status) }) : null]),
+      el("p", { class: "muted", style: "margin:0 0 8px;font-size:12.5px", text: "拆解方式：" + mode })]);
+    if (n.tree_stale) treeSec.appendChild(el("div", { class: "callout" }, ["节点在 " + fmtTime(n.tree_stale_since) + " 被返工或重开，这棵树之前的验收已失效。先重开受影响的树节点并重新验收，节点才能关闭：",
+      el("code", { class: "cmd", text: "python _shared/decomp-state.py reopen --task " + n.tree_ref + " --node <树节点> --reason \"…\" --evidence \"…\" --apply" })]));
+    if (n.tree && n.tree.found && n.tree.schema_known === false) treeSec.appendChild(el("div", { class: "callout", text: "这棵树的状态格式版本（" + (n.tree.schema_version || "未知") + "）与看板支持的不一致，下面的进度可能不准。" }));
+    if (n.tree) treeSec.appendChild(renderTree(n.tree));
+    else treeSec.appendChild(el("div", { class: "muted", style: "font-size:13px" }, ["这个节点还没有拆执行树。需要逐层拆到可执行的叶子时运行：",
+      el("code", { class: "cmd", text: "python task_graph.py new-tree --graph " + DATA.meta.graph_id + " --node " + n.id })]));
+    body.appendChild(treeSec);
+
+    // attempts
+    if ((n.attempts || []).length) {
+      var al = el("ul", { class: "attn" });
+      n.attempts.slice().reverse().forEach(function (a) {
+        var label = { pass: "通过", fail: "未通过", reset: "解除阻断", reopen: "重开" }[a.result] || a.result;
+        al.appendChild(el("li", {}, [pill(a.result === "pass" ? "done" : a.result === "fail" ? "blocked" : "ready", label),
+          el("span", { text: fmtTime(a.ts) + " · 第 " + ((a.iteration || 0) + 1) + " 轮" + (a.criteria && a.criteria.length ? " · " + a.criteria.join(", ") : "") + (a.exec ? " · 当时：" + execText(a.exec) : "") }),
+          a.reason || a.note || a.evidence ? el("span", { class: "why", text: a.reason || a.note || a.evidence }) : null]));
+      });
+      body.appendChild(el("section", { class: "d-sec" }, [el("h3", {}, ["尝试记录", el("small", { text: n.attempts.length + " 条" })]), al]));
+    }
+    if (n.downstream.length) {
+      var dl = el("div", { class: "chips" });
+      n.downstream.forEach(function (d) { var dn = nodes[d]; dl.appendChild(el("button", { class: "btn", type: "button", text: dn.seq + " " + dn.label, onclick: function () { select(d); } })); });
+      body.appendChild(el("section", { class: "d-sec" }, [el("h3", {}, ["下游节点", el("small", { text: "完成后它们才可能启动" })]), dl]));
+    }
+    drawer.appendChild(body);
+    drawer.scrollTop = keepScroll;
+  }
+
+  /* ---------------- order view ---------------- */
+  function renderOrder() {
+    var view = document.getElementById("view-order");
+    view.textContent = "";
+    var nodes = nodeMap();
+    if (!DATA.nodes.length) { view.appendChild(el("div", { class: "empty", text: "还没有节点，暂无执行顺序。" })); return; }
+    var readyChips = el("div", { class: "chips" });
+    DATA.order.ready.forEach(function (id) {
+      // Same rule as the CLI `ready`: only conflicts with work that could run right now.
+      var rn = nodes[id], warn = ((rn.exec_view || {}).conflicts || []).some(function (c) {
+        var o = nodes[c.id]; return o && (o.display_status === "ready" || o.display_status === "in_progress");
+      }) ? " · 写入冲突" : "";
+      // A stable focus key: the chip text changes when a conflict appears or clears.
+      readyChips.appendChild(el("button", { class: "btn", type: "button", "data-focus-key": "ready-node:" + id, onclick: function () { select(id); } }, [rn.seq + " " + rn.label,
+        el("span", { class: "x-tag", text: (rn.exec ? execBadge(rn.exec) : rn.kind === "gate" ? "人" : "主会话") + warn })]));
+    });
+    if (!DATA.order.ready.length) readyChips.appendChild(el("span", { class: "muted", text: DATA.kpi.in_progress ? "没有新的可启动节点，先完成进行中的节点。" : "没有可启动节点。" }));
+    var chain = el("div", { class: "chain" });
+    var rp = DATA.order.remaining_critical_path;
+    rp.forEach(function (id, i) {
+      if (i) chain.appendChild(el("span", { class: "arrow", text: "→" }));
+      chain.appendChild(el("button", { class: "linkish", type: "button", text: nodes[id].seq + " " + nodes[id].label, onclick: function () { select(id); } }));
+    });
+    if (!rp.length) chain.appendChild(el("span", { class: "muted", text: "所有节点都已关闭。" }));
+    view.appendChild(el("div", { class: "order-top" }, [
+      el("div", { class: "card" }, [el("h3", { text: "现在可启动（入条件已满足）" }), readyChips]),
+      el("div", { class: "card" }, [el("h3", { text: "剩余关键路径 · 预估合计 " + DATA.order.remaining_critical_length }), chain])
+    ]));
+    var waves = el("div", { class: "waves", role: "list" });
+    DATA.order.waves.forEach(function (ids, wi) {
+      var col = el("div", { class: "wave", role: "listitem" }, [el("h4", {}, [el("b", { text: "第 " + (wi + 1) + " 批" }), ids.length > 1 ? ids.length + " 项可并行" : "1 项"])]);
+      ids.forEach(function (id) {
+        var n = nodes[id];
+        col.appendChild(el("button", { class: "w-item" + (n.critical ? " critical" : ""), type: "button", "data-focus-key": "order-node:" + id, onclick: function () { select(id); } }, [
+          el("span", { class: "row" }, [el("span", { class: "sign", text: n.seq }), el("span", { text: n.group_path.join(" › ") }), el("span", { style: "margin-left:auto" }, [pill(n.display_status)])]),
+          el("span", { class: "lbl", text: n.label, style: "display:block" })
+        ]));
+      });
+      waves.appendChild(col);
+    });
+    view.appendChild(waves);
+    var tbody = el("tbody");
+    orderedIds().forEach(function (id) {
+      var n = nodes[id];
+      var deps = n.upstream.map(function (u) { return nodes[u.id].seq + (u.type === "soft" ? "（软）" : ""); }).join("、") || "—";
+      tbody.appendChild(el("tr", { onclick: function () { select(id); }, tabindex: "0", "data-focus-key": "order-row:" + id, onkeydown: function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(id); } } }, [
+        el("td", {}, [el("span", { class: "sign", text: n.seq })]), el("td", {}, [n.label, n.critical ? el("span", { class: "muted", text: " · 关键" }) : null]),
+        el("td", { text: n.group_path.join(" › ") || "—" }), el("td", { text: deps }), el("td", { text: (n.exec_view || {}).summary || "—" }), el("td", { text: String(n.estimate) }), el("td", {}, [pill(n.display_status)])
+      ]));
+    });
+    view.appendChild(el("div", { class: "table-wrap" }, [el("table", { class: "seq-table" }, [
+      el("thead", {}, [el("tr", {}, ["序号", "节点", "上级节点", "依赖", "执行", "预估", "状态"].map(function (h) { return el("th", { text: h }); }))]), tbody
+    ])]));
+    view.appendChild(el("p", { class: "muted", style: "font-size:12px", text: "批次按依赖深度划分，只用于阅读顺序；实际调度以入条件为准，节点满足入条件就可以启动，不必等同批其他节点。" }));
+  }
+
+  /* ---------------- monitor view ---------------- */
+  function meterFor(c, total) {
+    function seg(cls, v) { return v ? el("i", { class: cls, style: "width:" + (v / total * 100) + "%" }) : null; }
+    return el("div", { class: "meter" }, [seg("m-done", c.done), seg("m-prog", c.in_progress), seg("m-block", c.blocked), seg("m-skip", c.skipped)]);
+  }
+  function renderMonitor() {
+    var view = document.getElementById("view-monitor");
+    view.textContent = "";
+    var k = DATA.kpi, nodes = nodeMap();
+    function kpi(value, sub, label, alert) { return el("div", { class: "kpi" + (alert ? " alert" : "") }, [el("b", {}, [String(value), sub ? el("small", { text: sub }) : null]), el("span", { text: label })]); }
+    view.appendChild(el("div", { class: "kpis" }, [
+      kpi(k.done, " / " + k.effective_total, "节点以证据完成（跳过的不计入）"),
+      kpi(Math.round(k.estimate_ratio * 100), "%", "按预估加权的进度"),
+      kpi(k.in_progress, null, "进行中"),
+      kpi(k.blocked, null, "阻断", k.blocked > 0),
+      kpi(k.loop_rounds, null, "累计返工轮次"),
+      kpi(k.tree_leaves_total ? k.tree_leaves_done : "—", k.tree_leaves_total ? " / " + k.tree_leaves_total : null, "执行树叶子完成")
+    ]));
+    var left = el("div", {}, []), right = el("div", {}, []);
+    // groups
+    var gcard = el("div", { class: "card" }, [el("h3", { text: "按上级节点的进展" })]);
+    if (!DATA.groups.length) gcard.appendChild(el("p", { class: "muted", style: "margin:0;font-size:13px", text: "没有定义上级节点。" }));
+    DATA.groups.forEach(function (g) {
+      var total = g.members.length || 1;
+      var gate = g.exit && g.exit.length ? "里程碑 " + g.exit.filter(function (x) { return x.met; }).length + "/" + g.exit.length : "";
+      gcard.appendChild(el("div", { class: "g-row" }, [
+        el("span", {}, [el("span", { class: "indent", text: g.depth ? "└ ".padStart(g.depth * 2 + 2, " ") : "" }), g.label, el("span", { class: "muted", text: g.kind && g.kind !== "group" ? " · " + g.kind : "" })]),
+        meterFor(g.counts, total),
+        el("span", { class: "num", text: g.counts.done + "/" + (g.members.length - g.counts.skipped) + (gate ? " · " + gate : "") })
+      ]));
+    });
+    left.appendChild(gcard);
+    // goal acceptance
+    var goalCard = el("div", { class: "card", style: "margin-top:14px" }, [el("h3", { text: "总目标验收" })]);
+    var gl = el("ul", { class: "crit-list" });
+    ((DATA.meta.goal || {}).exit || []).forEach(function (x) { gl.appendChild(critItem(!!x.met, x.text, x.evidence)); });
+    if (!gl.childNodes.length) goalCard.appendChild(el("p", { class: "muted", style: "margin:0;font-size:13px", text: "总目标没有单独的验收条件，只能按节点关闭情况判断。" }));
+    else goalCard.appendChild(gl);
+    if (!DATA.readiness.complete) goalCard.appendChild(el("p", { class: "muted", style: "font-size:12.5px;margin:10px 0 0", text: "未完成原因：" + DATA.readiness.reasons.join("；") }));
+    if (DATA.meta.task_ref) goalCard.appendChild(el("p", { class: "muted", style: "font-size:12px;margin:8px 0 0" }, ["关联任务文件：", el("code", { class: "mono", text: DATA.meta.task_ref })]));
+    left.appendChild(goalCard);
+    // attention
+    var attn = el("ul", { class: "attn" });
+    DATA.nodes.forEach(function (n) {
+      if (n.display_status === "blocked") attn.appendChild(el("li", {}, [pill("blocked"), el("button", { class: "linkish", type: "button", text: n.seq + " " + n.label, onclick: function () { select(n.id); } }), el("span", { class: "why", text: n.acceptance_issue || n.blocked_reason || "" })]));
+    });
+    (k.in_progress_age || []).slice().sort(function (a, b) { return b.hours - a.hours; }).forEach(function (a) {
+      var n = nodes[a.id];
+      attn.appendChild(el("li", {}, [pill("in_progress"), el("button", { class: "linkish", type: "button", text: n.seq + " " + n.label, onclick: function () { select(n.id); } }),
+        el("span", { class: "why", text: "已进行 " + (a.hours >= 24 ? (a.hours / 24).toFixed(1) + " 天" : a.hours + " 小时") + "，出条件 " + exitCount(n).join("/") + " 已验证" })]));
+    });
+    DATA.loop_edges.filter(function (le) { return le.count > 0; }).forEach(function (le) {
+      attn.appendChild(el("li", {}, [el("span", { class: "pill", style: "color:var(--shunt)", text: "返工 " + le.count + "/" + le.max }),
+        el("span", { text: nodes[le.from].label + " → " + nodes[le.to].label }), el("span", { class: "why", text: le.count >= le.max ? "已到上限，再失败会阻断" : "还可返工 " + (le.max - le.count) + " 轮" })]));
+    });
+    var acard = el("div", { class: "card" }, [el("h3", { text: "需要关注" })]);
+    acard.appendChild(attn.childNodes.length ? attn : el("p", { class: "muted", style: "margin:0;font-size:13px", text: "没有阻断、长时间进行中或返工中的节点。" }));
+    right.appendChild(acard);
+    // timeline
+    var tl = el("ul", { class: "timeline" });
+    DATA.events.slice(0, 80).forEach(function (e) {
+      var tgt = nodes[e.target] ? nodes[e.target].seq + " " + nodes[e.target].label : e.target;
+      tl.appendChild(el("li", {}, [el("span", { class: "t", text: fmtTime(e.ts) }), el("span", { class: "k " + e.type, text: EVENTS[e.type] || e.type }), el("span", { class: "d", text: tgt + (e.detail ? " · " + e.detail : "") })]));
+    });
+    right.appendChild(el("div", { class: "card", style: "margin-top:14px" }, [el("h3", { text: "事件时间线（最新在上）" }), tl]));
+    view.appendChild(el("div", { class: "mon-grid" }, [left, right]));
+  }
+
+  /* ---------------- shell ---------------- */
+  function setView(v) {
+    ui.view = v;
+    ["graph", "order", "monitor"].forEach(function (name) {
+      document.getElementById("view-" + name).hidden = name !== v;
+      document.getElementById("tab-" + name).setAttribute("aria-selected", name === v ? "true" : "false");
+      document.getElementById("tab-" + name).tabIndex = name === v ? 0 : -1;
+    });
+    writeHash();
+    if (v === "graph") { if (ui.zoomMode === "fit") ui.zoom = null; applyZoom(); updateGraphHighlights(); }
+  }
+  document.querySelectorAll(".tab").forEach(function (t, index) {
+    t.addEventListener("click", function () { setView(t.getAttribute("data-view")); });
+    t.addEventListener("keydown", function (ev) {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab")), next;
+      if (ev.key === "ArrowRight") next = (index + 1) % tabs.length;
+      else if (ev.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+      else if (ev.key === "Home") next = 0;
+      else if (ev.key === "End") next = tabs.length - 1;
+      else return;
+      ev.preventDefault(); setView(tabs[next].getAttribute("data-view")); tabs[next].focus();
+    });
+  });
+  function select(id) {
+    var previous = ui.node, saved = captureViewState();
+    if (id && !previous && saved.focus && saved.focus.scope !== "drawer") ui.returnFocus = saved.focus;
+    ui.node = id;
+    writeHash();
+    renderSummary(); renderGraph(); renderDrawer();
+    if (ui.zoomMode === "fit") { ui.zoom = null; applyZoom(); }
+    restoreViewState(saved, previous !== id);
+    updateGraphHighlights();
+    if (id) {
+      var card = nodeElement(id);
+      if (card && ui.view === "graph") card.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } else if (previous && saved.focus && saved.focus.scope === "drawer") {
+      if (!restoreFocus(ui.returnFocus)) { var back = ui.view === "graph" && nodeElement(previous); if (back) back.focus({ preventScroll: true }); }
+    }
+  }
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && ui.node) { ev.preventDefault(); select(null); }
+    if (ev.key === "/" && !ev.ctrlKey && !ev.metaKey && !ev.target.closest("input, textarea, select, [contenteditable]")) {
+      ev.preventDefault(); setView("graph"); document.getElementById("node-search").focus();
+    }
+  });
+
+  function applyTheme() {
+    var root = document.documentElement;
+    if (ui.theme === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", ui.theme);
+    document.getElementById("theme-btn").textContent = "主题：" + { auto: "跟随系统", light: "浅色", dark: "深色" }[ui.theme];
+  }
+  document.getElementById("theme-btn").addEventListener("click", function () {
+    ui.theme = { auto: "light", light: "dark", dark: "auto" }[ui.theme];
+    store("tg-theme", ui.theme); applyTheme();
+  });
+
+  function renderAll() {
+    var saved = captureViewState();
+    if (ui.node && !nodeMap()[ui.node]) ui.node = null;
+    renderHeader(); renderSummary(); renderGraph(); renderOrder(); renderMonitor(); renderDrawer();
+    setView(ui.view);
+    restoreViewState(saved);
+  }
+
+  function poll() {
+    fetch(CONFIG.endpoint + "?t=" + Date.now(), { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (next) {
+      // content revision covers linked execution trees and same-second writes
+      var changed = next.meta.revision !== DATA.meta.revision;
+      ui.lastOk = true;
+      if (changed) {
+        DATA = next; renderAll();
+      } else { DATA.meta.generated_at = next.meta.generated_at; renderHeader(); }
+    }).catch(function () { ui.lastOk = false; renderHeader(); }).then(function () { setTimeout(poll, CONFIG.poll_ms); });
+  }
+
+  readHash();
+  var saved = store("tg-theme");
+  if (saved === "light" || saved === "dark" || saved === "auto") ui.theme = saved;
+  applyTheme();
+  legend();
+  renderAll();
+  if (ui.node) {
+    if (ui.view === "graph") locateNode(ui.node);
+  }
+  function resizeGraph() {
+    if (ui.view !== "graph") return;
+    if (ui.zoomMode === "fit") { ui.zoom = null; applyZoom(); updateGraphHighlights(); }
+    else updateMinimapViewport();
+  }
+  window.addEventListener("resize", resizeGraph);
+  if (window.ResizeObserver) new ResizeObserver(resizeGraph).observe(graphScroll);
+  window.addEventListener("hashchange", function () {
+    var before = [ui.view, ui.node];
+    ui.node = null; ui.query = ""; ui.status = "all"; readHash();
+    if (before[0] !== ui.view) setView(ui.view);
+    if (before[1] !== ui.node) select(ui.node);
+    updateGraphHighlights();
+  });
+  if (CONFIG.live) setTimeout(poll, CONFIG.poll_ms);
+})();
+</script>
+</body>
+</html>
