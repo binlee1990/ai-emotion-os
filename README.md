@@ -1,6 +1,6 @@
 # ai-emotion-os
 
-基于评价理论的「事件 → 评价 → 情绪」可计算情绪引擎（Python 库）。知识基础与理论依据见 [research/人类情绪全景调研.md](research/人类情绪全景调研.md)；设计与接口合同见 [docs/architecture-contract.md](docs/architecture-contract.md)。
+基于评价理论的「事件 → 评价 → 情绪」可计算情绪引擎（Python 库）。知识基础与理论依据见 [research/人类情绪全景调研.md](research/人类情绪全景调研.md)；设计与接口合同见 [docs/architecture-contract.md](docs/architecture-contract.md)；整体可视化见 [docs/visualization.html](docs/visualization.html)（引擎真实输出驱动，`python examples/generate_visualization.py` 重新生成）。
 
 安装（Python ≥3.10，零运行时依赖）：
 

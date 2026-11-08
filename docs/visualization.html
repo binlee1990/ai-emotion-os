@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>情绪引擎全景</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  :root {
+    --paper: #FAFAF6;
+    --ink: #1B2030;
+    --indigo: #3E5AA8;      /* 负效价 / 结构 */
+    --vermilion: #D8552B;   /* 正效价 / 强调 */
+    --grey: #878C99;
+    --card: #EDF1F8;
+    --hairline: #D9DDE6;
+    --serif: "Songti SC", "Noto Serif CJK SC", "SimSun", "STSong", serif;
+    --sans: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    --mono: "SF Mono", "Cascadia Mono", Consolas, "Courier New", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scrollbar-gutter: stable; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto;
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+  section { padding: 56px 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- header ---------- */
+  header { padding: 72px 0 40px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.22em;
+    color: var(--grey); text-transform: uppercase;
+  }
+  .eyebrow b { color: var(--vermilion); font-weight: 600; }
+  h1 {
+    font-family: var(--serif); font-weight: 700;
+    font-size: clamp(34px, 6vw, 58px); line-height: 1.18;
+    letter-spacing: 0.02em; margin: 18px 0 14px; text-wrap: balance;
+  }
+  .lede { max-width: 40em; color: #454B5C; }
+  .lede em { font-style: normal; border-bottom: 2px solid var(--card); }
+
+  /* ---------- 管线解剖 ---------- */
+  .stage-label {
+    display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px;
+  }
+  .stage-label h2 { font-family: var(--serif); font-size: 24px; font-weight: 700; }
+  .stage-label span { font-size: 13px; color: var(--grey); }
+  .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .stage {
+    background: #fff; border: 1px solid var(--hairline); border-radius: 10px;
+    padding: 14px 14px 12px; position: relative;
+  }
+  .stage h3 { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .stage h3 i {
+    width: 8px; height: 8px; border-radius: 50%; font-style: normal;
+    background: var(--indigo); flex: none;
+  }
+  .stage:nth-child(4) h3 i, .stage:nth-child(5) h3 i { background: var(--vermilion); }
+  .stage dl { margin-top: 10px; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; }
+  .stage dt { color: var(--grey); font-family: var(--sans); font-size: 10.5px; }
+  .stage dd { margin-bottom: 6px; }
+  .stage .zh-word { font-family: var(--serif); font-size: 17px; }
+  .arrow-note {
+    text-align: center; color: var(--grey); font-size: 12px;
+    margin-top: 10px; font-family: var(--mono);
+  }
+
+  /* ---------- 弧线（签名） ---------- */
+  .arc-section { padding-top: 30px; }
+  .arc-frame {
+    background: linear-gradient(#fff, #fff) padding-box;
+    border: 1px solid var(--hairline); border-radius: 12px;
+    padding: 26px 18px 14px; margin-top: 6px;
+    overflow-x: auto;
+  }
+  #arc { width: 100%; height: auto; display: block; min-width: 760px; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 20px; margin-top: 14px;
+    font-size: 12.5px; color: #454B5C; align-items: center;
+  }
+  .legend .key { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .swatch { width: 18px; height: 3px; border-radius: 2px; }
+  .legend .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .peakend-note {
+    margin-top: 16px; font-size: 13px; color: #454B5C;
+    background: var(--card); border-radius: 8px; padding: 10px 14px;
+  }
+  .peakend-note b { font-family: var(--mono); }
+
+  /* ---------- 语域 ---------- */
+  .registers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .reg {
+    border: 1px solid var(--hairline); border-radius: 10px; padding: 18px 18px 14px;
+    background: #fff;
+  }
+  .reg .tag {
+    font-family: var(--mono); font-size: 11px; color: var(--grey);
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .reg .scene { font-size: 12.5px; color: #454B5C; margin: 2px 0 12px; }
+  .reg .say {
+    font-family: var(--serif); font-size: 21px; line-height: 1.45; min-height: 3em;
+  }
+  .reg .chips { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .reg .chips span {
+    font-size: 12px; background: var(--card); border-radius: 99px;
+    padding: 2px 10px; color: #38405A;
+  }
+  .reg.hi { border-color: var(--vermilion); border-width: 1.5px; }
+
+  /* ---------- 机制 ---------- */
+  .mech { display: grid; grid-template-columns: 5fr 4fr; gap: 14px; }
+  .panel {
+    border: 1px solid var(--hairline); border-radius: 10px; background: #fff;
+    padding: 20px 20px 16px; overflow-x: auto;
+  }
+  .panel svg { min-width: 400px; }
+  .panel h3 { font-family: var(--serif); font-size: 18px; margin-bottom: 4px; }
+  .panel .sub { font-size: 12.5px; color: var(--grey); margin-bottom: 14px; }
+  .panel svg { width: 100%; height: auto; display: block; }
+  .factlist { font-size: 13px; line-height: 1.9; }
+  .factlist b { font-family: var(--mono); font-size: 15px; color: var(--vermilion); }
+  .src { font-size: 11.5px; color: var(--grey); margin-top: 10px; line-height: 1.6; }
+
+  /* ---------- footer ---------- */
+  footer {
+    border-top: 1px solid var(--hairline); margin-top: 30px; padding: 26px 0 46px;
+    font-size: 12.5px; color: var(--grey); display: flex; flex-wrap: wrap;
+    gap: 8px 28px; justify-content: space-between;
+  }
+  footer .num { color: var(--ink); }
+
+  /* ---------- 响应 ---------- */
+  @media (max-width: 860px) {
+    .pipeline { grid-template-columns: 1fr 1fr; }
+    .stage:nth-child(5) { grid-column: span 2; }
+    .mech { grid-template-columns: 1fr; }
+    .registers { grid-template-columns: 1fr; }
+    .reg .say { min-height: 0; }
+    header { padding-top: 52px; }
+    section { padding: 40px 0; }
+  }
+  @media (max-width: 480px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .stage:nth-child(5) { grid-column: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">appraisal theory → <b>computable engine</b> · 评价理论的可计算实现</div>
+  <h1>事件如何变成<br>一句有出处的情绪</h1>
+  <p class="lede">ai-emotion-os 把心理学的评价理论（Scherer 检查、OCC 分类、峰终定律、良性受虐倒 U）
+  实现为一条可运行的管线：<em>事件 → 评价 → 生成 → 动力学 → 表达</em>。
+  本页所有数字均由引擎真实计算产出——包括下面这条八幕叙事的情绪弧线。</p>
+</header>
+
+<section id="pipeline-sec">
+  <div class="stage-label">
+    <h2>管线解剖</h2><span>一个事件穿过的五个阶段 · 真实中间产物（第一幕：反派当众羞辱主角）</span>
+  </div>
+  <div class="pipeline" id="pipeline"></div>
+  <div class="arrow-note">同一事件，五次转变——每个中间产物都可以单独检查</div>
+</section>
+
+<section class="arc-section">
+  <div class="stage-label">
+    <h2>八幕情绪弧线</h2><span>憋屈铺垫 → 反杀打脸 → 和解收尾 · 词为表达层输出，线为三层状态</span>
+  </div>
+  <div class="arc-frame">
+    <svg id="arc" role="img" aria-label="八事件情绪弧线：每个事件的中文情绪词竖排标注，配心情与峰终记忆两条曲线"></svg>
+  </div>
+  <div class="legend">
+    <span class="key"><span class="swatch" style="background:var(--ink)"></span>峰终记忆评分（峰×0.5＋终值×0.5）</span>
+    <span class="key"><span class="swatch" style="background:var(--grey)"></span>心情 valence（慢速层）</span>
+    <span class="key"><span class="dot" style="background:var(--vermilion)"></span>正效价事件</span>
+    <span class="key"><span class="dot" style="background:var(--indigo)"></span>负效价事件</span>
+  </div>
+  <div class="peakend-note" id="peakend"></div>
+</section>
+
+<section>
+  <div class="stage-label">
+    <h2>同一状态，三种说法</h2><span>语域分档 · 第八幕结束后的真实状态（formal / neutral / colloquial）</span>
+  </div>
+  <div class="registers" id="registers"></div>
+</section>
+
+<section>
+  <div class="stage-label">
+    <h2>两个有出处的机制</h2><span>曲线由引擎函数真实计算，系数有实证来源</span>
+  </div>
+  <div class="mech">
+    <div class="panel">
+      <h3>恐惧享受倒 U</h3>
+      <div class="sub">安全框架内，享受随恐惧先升后降——顶点 0.84 不是拍的</div>
+      <svg id="uu" role="img" aria-label="恐惧与享受的倒U曲线，顶点在恐惧强度0.84处"></svg>
+      <div class="src">Andersen et al. 2020 鬼屋现场研究 OSF 开放数据复现拟合：
+        Likert 7.55/9 → 引擎尺度 0.84（95% CI [0.59, 1.09]）；
+        v0.2 自设值 0.30 曾意味着「几乎不怕才最爽」——与数据相反。</div>
+    </div>
+    <div class="panel">
+      <h3>引擎事实</h3>
+      <div class="sub">七版交付，每版独立复审</div>
+      <div class="factlist" id="facts"></div>
+      <div class="src">顶点换算假设 fear=likert/9；峰终等权为 Kahneman et al. 1993 /
+        Redelmeier et al. 2003 的规则支持（相对权重未报告）。<br>
+        全部出处见 research/ 与 docs/architecture-contract.md。</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>ai-emotion-os · <span class="num">v0.7.0</span> · Python ≥3.10 · 零运行时依赖</span>
+  <span><span class="num">163</span> 项测试全绿 · 每版 fresh 复审 · 本页由 examples/generate_visualization.py 生成</span>
+</footer>
+
+</div>
+<script>
+const DATA = {"meta": {"version": "0.7.0", "categories": 88, "tests": 163, "releases": 7, "peak": 0.84, "peak_ci": "[0.59, 1.09]"}, "events": [{"title": "反派当众羞辱主角", "dt": 1.0, "words": [{"word": "义愤填膺", "zh": "义愤", "intensity": 1.0, "category": "indignation"}, {"word": "满腹委屈", "zh": "委屈", "intensity": 1.0, "category": "wei_yuan"}, {"word": "极度憋屈", "zh": "憋屈", "intensity": 1.0, "category": "bie_qu"}], "dims": {"valence": -0.396, "arousal": 0.505, "dominance": -0.018, "unpredictability": 0.197}, "mood": -0.011, "memory": -0.396, "summary": "义愤填膺与满腹委屈交织"}, {"title": "求助无门，孤立无援", "dt": 30.0, "words": [{"word": "极度憋屈", "zh": "憋屈", "intensity": 0.87, "category": "bie_qu"}, {"word": "大失所望", "zh": "失望", "intensity": 0.745, "category": "disappointment"}, {"word": "处处碰壁", "zh": "挫败", "intensity": 0.732, "category": "frustration"}], "dims": {"valence": -0.425, "arousal": 0.454, "dominance": -0.17, "unpredictability": 0.188}, "mood": -0.021, "memory": -0.378, "summary": "极度憋屈与大失所望交织"}, {"title": "贵人暗中相助", "dt": 120.0, "words": [{"word": "好奇", "zh": "好奇", "intensity": 0.387, "category": "curiosity"}, {"word": "愉快", "zh": "愉快", "intensity": 0.373, "category": "pleasure"}, {"word": "有兴趣", "zh": "兴趣", "intensity": 0.329, "category": "interest"}], "dims": {"valence": 0.311, "arousal": 0.431, "dominance": 0.11, "unpredictability": 0.185}, "mood": -0.01, "memory": -0.003, "summary": "好奇与愉快交织"}, {"title": "闭关修炼，信心渐复", "dt": 1440.0, "words": [{"word": "愉快", "zh": "愉快", "intensity": 0.355, "category": "pleasure"}, {"word": "放松", "zh": "放松", "intensity": 0.183, "category": "relaxation"}, {"word": "高兴", "zh": "喜悦", "intensity": 0.166, "category": "joy"}], "dims": {"valence": 0.454, "arousal": 0.433, "dominance": 0.252, "unpredictability": 0.138}, "mood": 0.003, "memory": 0.029, "summary": "愉快"}, {"title": "反派再挑衅，赌上全部", "dt": 60.0, "words": [{"word": "义愤填膺", "zh": "义愤", "intensity": 1.0, "category": "indignation"}, {"word": "深恶痛绝", "zh": "道德厌恶", "intensity": 1.0, "category": "moral_disgust"}, {"word": "蔑视", "zh": "蔑视", "intensity": 1.0, "category": "contempt"}], "dims": {"valence": -0.4, "arousal": 0.549, "dominance": 0.015, "unpredictability": 0.202}, "mood": -0.008, "memory": -0.4, "summary": "义愤填膺与深恶痛绝交织"}, {"title": "当众反杀，一战成名", "dt": 10.0, "words": [{"word": "大吃一惊", "zh": "惊讶", "intensity": 1.0, "category": "surprise"}, {"word": "畅快", "zh": "愉快", "intensity": 1.0, "category": "pleasure"}, {"word": "狂喜", "zh": "狂喜", "intensity": 1.0, "category": "ecstasy"}], "dims": {"valence": 0.243, "arousal": 0.604, "dominance": 0.256, "unpredictability": 0.213}, "mood": 0.007, "memory": 0.54, "summary": "大吃一惊与畅快交织"}, {"title": "反派身败名裂，众人声讨", "dt": 45.0, "words": [{"word": "大快人心", "zh": "解气", "intensity": 1.0, "category": "jie_qi"}, {"word": "畅快", "zh": "愉快", "intensity": 0.816, "category": "pleasure"}, {"word": "上头", "zh": "上头", "intensity": 0.675, "category": "shang_tou"}], "dims": {"valence": 0.378, "arousal": 0.565, "dominance": 0.216, "unpredictability": 0.183}, "mood": 0.018, "memory": 0.477, "summary": "大快人心与畅快交织"}, {"title": "失散亲人重逢相拥", "dt": 180.0, "words": [{"word": "破防了", "zh": "破防", "intensity": 0.695, "category": "po_fang"}, {"word": "感动", "zh": "被感动", "intensity": 0.65, "category": "kama_muta"}, {"word": "愉快", "zh": "愉快", "intensity": 0.56, "category": "pleasure"}], "dims": {"valence": 0.379, "arousal": 0.565, "dominance": 0.056, "unpredictability": 0.24}, "mood": 0.028, "memory": 0.459, "summary": "又破防了又感动"}], "registers": {"formal": {"summary": "又心理防线被击穿又感动", "words": [{"word": "心理防线被击穿", "intensity": 0.695}, {"word": "感动", "intensity": 0.65}, {"word": "愉快", "intensity": 0.56}]}, "neutral": {"summary": "又破防了又感动", "words": [{"word": "破防了", "intensity": 0.695}, {"word": "感动", "intensity": 0.65}, {"word": "愉快", "intensity": 0.56}]}, "colloquial": {"summary": "又绷不住了又感动", "words": [{"word": "绷不住了", "intensity": 0.695}, {"word": "感动", "intensity": 0.65}, {"word": "愉快", "intensity": 0.56}]}}, "fear_enjoyment": [{"fear": 0.0, "enjoyment": 0.0}, {"fear": 0.01, "enjoyment": 0.01}, {"fear": 0.02, "enjoyment": 0.02}, {"fear": 0.03, "enjoyment": 0.03}, {"fear": 0.04, "enjoyment": 0.04}, {"fear": 0.05, "enjoyment": 0.05}, {"fear": 0.06, "enjoyment": 0.06}, {"fear": 0.07, "enjoyment": 0.07}, {"fear": 0.08, "enjoyment": 0.08}, {"fear": 0.09, "enjoyment": 0.09}, {"fear": 0.1, "enjoyment": 0.1}, {"fear": 0.11, "enjoyment": 0.11}, {"fear": 0.12, "enjoyment": 0.12}, {"fear": 0.13, "enjoyment": 0.13}, {"fear": 0.14, "enjoyment": 0.14}, {"fear": 0.15, "enjoyment": 0.15}, {"fear": 0.16, "enjoyment": 0.16}, {"fear": 0.17, "enjoyment": 0.17}, {"fear": 0.18, "enjoyment": 0.18}, {"fear": 0.19, "enjoyment": 0.19}, {"fear": 0.2, "enjoyment": 0.2}, {"fear": 0.21, "enjoyment": 0.21}, {"fear": 0.22, "enjoyment": 0.22}, {"fear": 0.23, "enjoyment": 0.23}, {"fear": 0.24, "enjoyment": 0.24}, {"fear": 0.25, "enjoyment": 0.25}, {"fear": 0.26, "enjoyment": 0.26}, {"fear": 0.27, "enjoyment": 0.27}, {"fear": 0.28, "enjoyment": 0.28}, {"fear": 0.29, "enjoyment": 0.29}, {"fear": 0.3, "enjoyment": 0.3}, {"fear": 0.31, "enjoyment": 0.31}, {"fear": 0.32, "enjoyment": 0.32}, {"fear": 0.33, "enjoyment": 0.33}, {"fear": 0.34, "enjoyment": 0.34}, {"fear": 0.35, "enjoyment": 0.35}, {"fear": 0.36, "enjoyment": 0.36}, {"fear": 0.37, "enjoyment": 0.37}, {"fear": 0.38, "enjoyment": 0.38}, {"fear": 0.39, "enjoyment": 0.39}, {"fear": 0.4, "enjoyment": 0.4}, {"fear": 0.41, "enjoyment": 0.41}, {"fear": 0.42, "enjoyment": 0.42}, {"fear": 0.43, "enjoyment": 0.43}, {"fear": 0.44, "enjoyment": 0.44}, {"fear": 0.45, "enjoyment": 0.45}, {"fear": 0.46, "enjoyment": 0.46}, {"fear": 0.47, "enjoyment": 0.47}, {"fear": 0.48, "enjoyment": 0.48}, {"fear": 0.49, "enjoyment": 0.49}, {"fear": 0.5, "enjoyment": 0.5}, {"fear": 0.51, "enjoyment": 0.51}, {"fear": 0.52, "enjoyment": 0.52}, {"fear": 0.53, "enjoyment": 0.53}, {"fear": 0.54, "enjoyment": 0.54}, {"fear": 0.55, "enjoyment": 0.55}, {"fear": 0.56, "enjoyment": 0.56}, {"fear": 0.57, "enjoyment": 0.57}, {"fear": 0.58, "enjoyment": 0.58}, {"fear": 0.59, "enjoyment": 0.59}, {"fear": 0.6, "enjoyment": 0.6}, {"fear": 0.61, "enjoyment": 0.61}, {"fear": 0.62, "enjoyment": 0.62}, {"fear": 0.63, "enjoyment": 0.63}, {"fear": 0.64, "enjoyment": 0.64}, {"fear": 0.65, "enjoyment": 0.65}, {"fear": 0.66, "enjoyment": 0.66}, {"fear": 0.67, "enjoyment": 0.67}, {"fear": 0.68, "enjoyment": 0.68}, {"fear": 0.69, "enjoyment": 0.69}, {"fear": 0.7, "enjoyment": 0.7}, {"fear": 0.71, "enjoyment": 0.71}, {"fear": 0.72, "enjoyment": 0.72}, {"fear": 0.73, "enjoyment": 0.73}, {"fear": 0.74, "enjoyment": 0.74}, {"fear": 0.75, "enjoyment": 0.75}, {"fear": 0.76, "enjoyment": 0.76}, {"fear": 0.77, "enjoyment": 0.77}, {"fear": 0.78, "enjoyment": 0.78}, {"fear": 0.79, "enjoyment": 0.79}, {"fear": 0.8, "enjoyment": 0.8}, {"fear": 0.81, "enjoyment": 0.81}, {"fear": 0.82, "enjoyment": 0.82}, {"fear": 0.83, "enjoyment": 0.83}, {"fear": 0.84, "enjoyment": 0.84}, {"fear": 0.85, "enjoyment": 0.7875}, {"fear": 0.86, "enjoyment": 0.735}, {"fear": 0.87, "enjoyment": 0.6825}, {"fear": 0.88, "enjoyment": 0.63}, {"fear": 0.89, "enjoyment": 0.5775}, {"fear": 0.9, "enjoyment": 0.525}, {"fear": 0.91, "enjoyment": 0.4725}, {"fear": 0.92, "enjoyment": 0.42}, {"fear": 0.93, "enjoyment": 0.3675}, {"fear": 0.94, "enjoyment": 0.315}, {"fear": 0.95, "enjoyment": 0.2625}, {"fear": 0.96, "enjoyment": 0.21}, {"fear": 0.97, "enjoyment": 0.1575}, {"fear": 0.98, "enjoyment": 0.105}, {"fear": 0.99, "enjoyment": 0.0525}, {"fear": 1.0, "enjoyment": 0.0}], "pipeline": {"event": {"title": "反派当众羞辱主角", "category": "E_violation", "goal_impacts": {"esteem": -0.8}, "severity": 0.8}, "appraisal": {"goal_relevance": 0.85, "conduciveness": -0.8, "urgency": 0.0, "novelty": 0.6, "control": 0.43}, "generation": [{"cat": "indignation", "zh": "义愤", "intensity": 1.0}, {"cat": "wei_yuan", "zh": "委屈", "intensity": 1.0}, {"cat": "bie_qu", "zh": "憋屈", "intensity": 1.0}, {"cat": "startle", "zh": "惊吓", "intensity": 1.0}], "dynamics": {"mood_after": -0.011, "residue": 1.0, "charges": {"villain": 1.0}}, "expression": {"neutral": "义愤填膺与满腹委屈交织", "entries": [{"word": "义愤填膺", "intensity": 1.0}, {"word": "满腹委屈", "intensity": 1.0}, {"word": "极度憋屈", "intensity": 1.0}], "dims": {"v": -0.4, "a": 0.5}}}};
+
+/* ---------- 管线解剖 ---------- */
+(function renderPipeline() {
+  const p = DATA.pipeline, el = document.getElementById('pipeline');
+  const fmt = (o) => Object.entries(o).map(([k, v]) =>
+    `<dt>${k}</dt><dd class="num">${v}</dd>`).join('');
+  const genWords = p.generation.map(g => `<span class="zh-word">${g.zh}</span>`).join(' · ');
+  el.innerHTML = `
+    <div class="stage"><h3><i></i>事件</h3><dl>
+      <dt>category</dt><dd>${p.event.category}</dd>
+      <dt>goal_impacts</dt><dd class="num">${JSON.stringify(p.event.goal_impacts)}</dd>
+      <dt>moral.severity</dt><dd class="num">${p.event.severity}</dd></dl></div>
+    <div class="stage"><h3><i></i>评价</h3><dl>${fmt(p.appraisal)}</dl></div>
+    <div class="stage"><h3><i></i>生成</h3><dl>
+      <dt>激活 top</dt><dd>${genWords}</dd>
+      <dt>强度</dt><dd class="num">${p.generation.map(g => g.intensity).join(' / ')}</dd></dl></div>
+    <div class="stage"><h3><i></i>动力学</h3><dl>
+      <dt>心情 valence</dt><dd class="num">${p.dynamics.mood_after}</dd>
+      <dt>唤醒残余</dt><dd class="num">${p.dynamics.residue}</dd>
+      <dt>对象记账</dt><dd class="num">${JSON.stringify(p.dynamics.charges)}</dd></dl></div>
+    <div class="stage"><h3><i></i>表达</h3><dl>
+      <dt>输出</dt><dd><span class="zh-word">${p.expression.neutral}</span></dd>
+      <dt>4D V/A</dt><dd class="num">${p.expression.dims.v} / ${p.expression.dims.a}</dd></dl></div>`;
+})();
+
+/* ---------- 弧线（签名） ---------- */
+(function renderArc() {
+  const svg = document.getElementById('arc');
+  const W = 1000, H = 420, mL = 46, mR = 18, mT = 30, mB = 64;
+  const ev = DATA.events, n = ev.length;
+  const x = i => mL + (W - mL - mR) * (i + 0.5) / n;
+  const y = v => mT + (H - mT - mB) * (1 - (v + 1) / 2);   // valence -1..1 → 纵向
+  const C = { pos: getCss('--vermilion'), neg: getCss('--indigo'),
+              ink: getCss('--ink'), grey: getCss('--grey'), hair: getCss('--hairline') };
+  function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+  let s = '';
+  // 基线与网格
+  s += `<line x1="${mL}" y1="${y(0)}" x2="${W - mR}" y2="${y(0)}" stroke="${C.hair}" stroke-width="1"/>`;
+  s += `<text x="${mL - 8}" y="${y(1) + 4}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">+1</text>`;
+  s += `<text x="${mL - 8}" y="${y(-1) + 4}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">−1</text>`;
+
+  // 心情线（细灰）
+  s += path(ev.map((e, i) => [x(i), y(e.mood)]), C.grey, 1.5, [4, 4]);
+  // 峰终记忆线（主粗，分段按相邻点均值着色）
+  for (let i = 0; i < n - 1; i++) {
+    const v = (ev[i].memory + ev[i + 1].memory) / 2;
+    s += `<line x1="${x(i)}" y1="${y(ev[i].memory)}" x2="${x(i + 1)}" y2="${y(ev[i + 1].memory)}"
+          stroke="${v >= 0 ? C.pos : C.neg}" stroke-width="3" stroke-linecap="round" opacity="0.85"/>`;
+  }
+
+  ev.forEach((e, i) => {
+    const cx = x(i), top = e.words[0];
+    const pos = e.dims.valence >= 0;
+    const col = pos ? C.pos : C.neg;
+    // 节点圆
+    s += `<circle cx="${cx}" cy="${y(e.memory)}" r="5.5" fill="${col}"/>`;
+    // 竖排主词（逐字竖排，宋体，字号∝强度）；强度数字在圆点下方，避免与词重叠
+    if (top) {
+      const fs = 19 + 13 * Math.min(1, top.intensity);
+      const chars = [...top.word];
+      const total = chars.length * (fs + 3);
+      let y0 = y(e.memory) - 26 - total;
+      y0 = Math.max(mT + 6, y0);
+      chars.forEach((ch, k) => {
+        s += `<text x="${cx}" y="${y0 + k * (fs + 3)}" text-anchor="middle"
+              font-family="'Songti SC','Noto Serif CJK SC','SimSun',serif" font-weight="700" font-size="${fs.toFixed(1)}"
+              fill="${col}">${ch}</text>`;
+      });
+      s += `<text x="${cx + 9}" y="${y(e.memory) + 4}" text-anchor="start" font-size="10"
+            fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">${top.intensity.toFixed(2)}</text>`;
+    }
+    // 事件标题（底部，横排）
+    s += `<text x="${cx}" y="${H - mB + 26}" text-anchor="middle" font-size="12.5"
+          fill="${C.ink}" >${e.title}</text>`;
+    s += `<text x="${cx}" y="${H - mB + 44}" text-anchor="middle" font-size="10"
+          fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">t+${e.dt >= 1440 ? (e.dt/1440)+'d' : e.dt+'m'}</text>`;
+  });
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = s;
+  function path(pts, stroke, w, dash) {
+    return `<polyline points="${pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"
+      fill="none" stroke="${stroke}" stroke-width="${w}"
+      ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linejoin="round"/>`;
+  }
+
+  // 峰终注记
+  const m = DATA.meta, last = ev[ev.length - 1];
+  const peakEv = ev.reduce((a, b) => Math.abs(b.memory) > Math.abs(a.memory) ? b : a);
+  document.getElementById('peakend').innerHTML =
+    `峰终定律（时长忽视）：记忆评分 = <b>峰值×0.5 + 终值×0.5</b>。
+     本弧线终值 <b class="num">${last.memory > 0 ? '+' : ''}${last.memory.toFixed(2)}</b>（HE 收尾 → 正分），
+     当前心情 valence <b class="num">${last.mood > 0 ? '+' : ''}${last.mood.toFixed(2)}</b>——
+     单事件撼不动慢速层，这正是三层动力学的分层。`;
+})();
+
+/* ---------- 语域 ---------- */
+(function renderRegisters() {
+  const R = DATA.registers, meta = [
+    ['formal', '对外正式 · 书面', '汇报、悼词、通稿'],
+    ['neutral', '通用（默认）', '记录、说明文'],
+    ['colloquial', '对内私下 · 口语', '吐槽、朋友圈'],
+  ];
+  const el = document.getElementById('registers');
+  el.innerHTML = meta.map(([k, name, scene], i) => `
+    <div class="reg ${i === 0 ? 'hi' : ''}">
+      <div class="tag">${k}</div>
+      <div class="scene">${name} · ${scene}</div>
+      <div class="say">${R[k].summary || '（平静）'}</div>
+      <div class="chips">${R[k].words.map(w =>
+        `<span>${w.word} <span class="num">${w.intensity.toFixed(2)}</span></span>`).join('')}</div>
+    </div>`).join('');
+})();
+
+/* ---------- 倒 U ---------- */
+(function renderUU() {
+  const svg = document.getElementById('uu');
+  const W = 460, H = 250, mL = 40, mR = 14, mT = 16, mB = 34;
+  const pts = DATA.fear_enjoyment;
+  const x = f => mL + (W - mL - mR) * f;
+  const y = v => mT + (H - mT - mB) * (1 - v / 0.9);
+  const C = { ink: '#1B2030', grey: '#878C99', ver: '#D8552B', hair: '#D9DDE6' };
+  const peak = DATA.meta.peak;
+  let s = '';
+  // 轴
+  s += `<line x1="${mL}" y1="${y(0)}" x2="${W - mR}" y2="${y(0)}" stroke="${C.hair}"/>`;
+  s += `<line x1="${mL}" y1="${mT}" x2="${mL}" y2="${y(0)}" stroke="${C.hair}"/>`;
+  // 曲线下面积
+  s += `<path d="M${pts.map(p => `${x(p.fear).toFixed(1)},${y(p.enjoyment).toFixed(1)}`).join('L')}L${x(1)},${y(0)}L${x(0)},${y(0)}Z"
+        fill="${C.ver}" opacity="0.07"/>`;
+  // 曲线
+  s += `<path d="M${pts.map(p => `${x(p.fear).toFixed(1)},${y(p.enjoyment).toFixed(1)}`).join('L')}"
+        fill="none" stroke="${C.ver}" stroke-width="2.5" stroke-linejoin="round"/>`;
+  // 顶点
+  const pk = pts.find(p => p.fear >= peak);
+  s += `<line x1="${x(peak)}" y1="${y(pk.enjoyment)}" x2="${x(peak)}" y2="${y(0)}"
+        stroke="${C.grey}" stroke-dasharray="3 4"/>`;
+  s += `<circle cx="${x(peak)}" cy="${y(pk.enjoyment)}" r="4.5" fill="${C.ver}"/>`;
+  s += `<text x="${x(peak) + 8}" y="${y(pk.enjoyment) - 8}" font-size="12" fill="${C.ink}"
+        font-family="SF Mono,Cascadia Mono,Consolas,monospace">peak = 0.84</text>`;
+  // 旧自设值 0.30 标记
+  s += `<circle cx="${x(0.30)}" cy="${y(pts[30].enjoyment)}" r="3.5" fill="none"
+        stroke="${C.grey}" stroke-width="1.5"/>`;
+  s += `<text x="${x(0.30) + 7}" y="${y(pts[30].enjoyment) + 16}" font-size="10.5" fill="${C.grey}"
+        font-family="SF Mono,Cascadia Mono,Consolas,monospace">v0.2 自设 0.30</text>`;
+  // 轴标
+  s += `<text x="${(W + mL) / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${C.grey}">恐惧强度（引擎尺度）</text>`;
+  s += `<text x="${mL - 6}" y="${mT + 10}" text-anchor="end" font-size="10" fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">享受</text>`;
+  for (const t of [0, 0.5, 1]) {
+    s += `<text x="${x(t)}" y="${y(0) + 14}" text-anchor="middle" font-size="10"
+          fill="${C.grey}" font-family="SF Mono,Cascadia Mono,Consolas,monospace">${t.toFixed(1)}</text>`;
+  }
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = s;
+})();
+
+/* ---------- 事实 ---------- */
+(function renderFacts() {
+  const m = DATA.meta;
+  document.getElementById('facts').innerHTML = [
+    `<b>${m.categories}</b> 个情绪类别（OCC 22 类 + 中文特有词：委屈、解气、破防、麻了…）`,
+    `<b>${m.tests}</b> 项测试，场景断言直接取自调研预测（BIRGing、绝杀兴奋转移、已读不回…）`,
+    `<b>${m.releases}</b> 版交付：实证标定 → 真实 LLM 端到端 → 可安装库`,
+    `双供应商 LLM 端到端：<b>claude</b> + <b>codex</b> CLI 贯通「叙事 → 引擎 → 中文表达」`,
+  ].map(t => `<div>${t}</div>`).join('');
+})();
+
+/* ---------- 首帧完整静止（无入场动画：缩略图/分享首帧即全貌） ---------- */
+</script>
+</body>
+</html>
