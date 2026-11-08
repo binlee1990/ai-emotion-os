@@ -1,13 +1,24 @@
 """中文分级词表：类别×强度档 → 中文词（调研 §3.3；R-EXP-01 类别通道）。
 
-显式分档覆盖高频类别；其余用通用分档。正式度/场合分级未做（调研附录未决项，待语言学补充）。
-档位阈值为 v0.1 常数（待标定）。
+v0.1 强度分档：显式覆盖高频类别，其余用通用分档；阈值为 v0.1 常数（待标定）。
+v0.6 语域分档（正式度/场合）：单轴三档——formal（书面/对外正式场合）、
+neutral（通用，默认=强度梯子原样）、colloquial（口语/对内私下场合）。
+语域梯共 30 条（17 formal + 13 colloquial，28 个去重类别），只覆盖「语域差异
+显著+高频」类别，其余显式回退 neutral（formal 场合下回退词可能带口语色彩——
+覆盖范围而非机制的限制）。
+
+标注性质（诚实声明）：正式度判定为语言常识自设，无语言学实证——2026-11-09
+检索（google/jina，中文）未找到汉语情绪词语域/正式度分级的规范研究（中科院
+心理所 AANC 为年龄差异维度；PolyU 2016 等为极性词库，无正式度轴）；调研附录
+「需专门语言学补充调研」的判断仍成立，此处为可用的工程近似。
 """
 from __future__ import annotations
 
 from ..generation.catalog import CATALOG
 
-# category → [(阈值, 词), ...] 升阈排列
+REGISTERS = ("neutral", "formal", "colloquial")
+
+# category → [(阈值, 词), ...] 升阈排列（neutral 基准梯）
 _LADDERS: dict[str, list[tuple[float, str]]] = {
     "irritation": [(0.0, "有点恼"), (0.4, "恼怒"), (0.75, "火冒")],
     "frustration": [(0.0, "不顺"), (0.35, "挫败"), (0.7, "处处碰壁")],
@@ -100,9 +111,15 @@ _LADDERS: dict[str, list[tuple[float, str]]] = {
 }
 
 
-def graded_word(category_id: str, intensity: float) -> str:
-    """强度单调分档：intensity 越高选越高档词。"""
-    ladder = _LADDERS.get(category_id)
+def graded_word(category_id: str, intensity: float, register: str = "neutral") -> str:
+    """强度单调分档：intensity 越高选越高档词；register 选语域梯（未覆盖回退 neutral）。"""
+    if register not in REGISTERS:
+        raise ValueError(f"register 须为 {REGISTERS} 之一，得到 {register!r}")
+    ladder = None
+    if register != "neutral":
+        ladder = _REGISTER_LADDERS.get((category_id, register))
+    if ladder is None:
+        ladder = _LADDERS.get(category_id)
     if ladder is None:
         zh = CATALOG[category_id].zh
         ladder = [(0.0, zh), (0.55, f"明显的{zh}"), (0.8, f"强烈的{zh}")]
@@ -111,3 +128,43 @@ def graded_word(category_id: str, intensity: float) -> str:
         if intensity >= threshold:
             word = w
     return word
+
+
+# 语域梯（v0.6）：整梯替换（档位阈值与 neutral 梯对齐、词替换）。
+# (category, register) → [(阈值, 词)]。
+# 自设标注（见模块 docstring），选词原则：formal 避口语/网络语（麻了/笑死/磕疯了…），
+# colloquial 避书面成语腔（义愤填膺/如释重负…）。
+_REGISTER_LADDERS: dict[tuple[str, str], list[tuple[float, str]]] = {
+    # ---- formal：书面/对外正式场合 ----
+    ("po_fang", "formal"): [(0.0, "心里一阵酸楚"), (0.5, "心理防线被击穿")],
+    ("shuang", "formal"): [(0.0, "痛快"), (0.4, "畅快"), (0.75, "酣畅淋漓")],
+    ("numb", "formal"): [(0.0, "略显麻木"), (0.5, "情感麻木"), (0.8, "彻底麻木")],
+    ("ke_dao", "formal"): [(0.0, "为这段关系欣喜"), (0.5, "为这段关系着迷")],
+    ("amusement", "formal"): [(0.0, "觉得有趣"), (0.4, "忍俊不禁"), (0.75, "捧腹")],
+    ("embarrassment", "formal"): [(0.0, "尴尬"), (0.6, "无地自容的难堪")],
+    ("vicarious_embarrassment", "formal"): [(0.0, "替他难堪"), (0.6, "感同身受的难堪")],
+    ("jie_qi", "formal"): [(0.0, "心中块垒稍解"), (0.5, "大快人心")],
+    ("schadenfreude", "formal"): [(0.0, "暗自庆幸"), (0.5, "幸灾乐祸")],
+    ("fear_enjoyment", "formal"): [(0.0, "又惧又快"), (0.5, "惧中带乐")],
+    ("shang_tou", "formal"): [(0.0, "渐入迷态"), (0.5, "欲罢不能"), (0.8, "沉溺其中不能自拔")],
+    ("startle", "formal"): [(0.0, "受惊"), (0.6, "大惊")],
+    ("chills", "formal"): [(0.0, "起鸡皮疙瘩"), (0.5, "审美颤栗")],
+    ("social_pain", "formal"): [(0.0, "内心刺痛"), (0.5, "遭排斥之痛")],
+    ("betrayal", "formal"): [(0.0, "感到被辜负"), (0.5, "遭到背叛")],
+    ("fear", "formal"): [(0.0, "有所惧"), (0.35, "恐惧"), (0.7, "极度恐惧")],
+    ("dread", "formal"): [(0.0, "心存忌惮"), (0.5, "畏惧")],
+    # ---- colloquial：口语/对内私下场合 ----
+    ("indignation", "colloquial"): [(0.0, "气不过"), (0.35, "气不打一处来"), (0.7, "肺都气炸了")],
+    ("moral_disgust", "colloquial"): [(0.0, "看不下去"), (0.4, "打心底反感"), (0.75, "恶心到家了")],
+    ("fear", "colloquial"): [(0.0, "心里发毛"), (0.35, "怕得很"), (0.7, "怕死了")],
+    ("sadness", "colloquial"): [(0.0, "心里不是滋味"), (0.35, "难受"), (0.7, "难受得不行")],
+    ("disappointment", "colloquial"): [(0.0, "心里空落落"), (0.35, "失望"), (0.7, "失望透顶")],
+    ("shame", "colloquial"): [(0.0, "臊得慌"), (0.5, "丢死人了"), (0.8, "没脸见人")],
+    ("surprise", "colloquial"): [(0.0, "愣了一下"), (0.4, "吃了一惊"), (0.75, "惊掉下巴")],
+    ("awe", "colloquial"): [(0.0, "服了"), (0.5, "被震住了")],
+    ("relief", "colloquial"): [(0.0, "松了口气"), (0.5, "一块石头落了地")],
+    ("gratitude", "colloquial"): [(0.0, "挺感谢的"), (0.5, "太感谢了")],
+    ("grief", "colloquial"): [(0.0, "难过得不行"), (0.5, "心都碎了"), (0.8, "难受得要命")],
+    ("wei_yuan", "colloquial"): [(0.0, "有点委屈巴巴"), (0.4, "委屈巴巴"), (0.75, "委屈得不行")],
+    ("po_fang", "colloquial"): [(0.0, "有点绷不住"), (0.5, "绷不住了")],
+}

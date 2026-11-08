@@ -138,13 +138,21 @@ rules:
 
   - rule_id: R-EXP-01
     description: >
-      双通道表达（调研§6.3.2、§3.4）：表达层同时输出 (a)类别中文词+强度分级 (b)4D 连续坐标；
-      多类别同时激活可输出混合描述（如「又好气又好笑」）。
+      双通道表达（调研§6.3.2、§3.4）+ 语域分档（v0.6，调研附录「正式度/场合」未决项）：
+      表达层同时输出 (a)类别中文词+强度分级（可按语域 formal/neutral/colloquial 选梯——
+      对外正式场合避口语/网络语，私下口语场合避书面成语腔；未覆盖类别回退 neutral）
+      (b)4D 连续坐标；多类别同时激活可输出混合描述（如「又好气又好笑」）。
     formal_check: pytest:tests/test_expression.py::TestDualChannel::test_dual_channel_and_mixing
-    formal_check_note: 输出结构断言（双字段存在、混合场景双类别词）；分级单调见同文件 TestGradedLexicon。
+    formal_check_note: 输出结构断言（双字段存在、混合场景双类别词）；分级单调见同文件 TestGradedLexicon；
+      语域分档见 tests/test_lexicon_register.py（三语域可区分、formal 无口语标记词全量断言、
+      未覆盖回退、默认参数=v0.5 行为）。
     valid_examples:
       - "anger=0.5 & amusement=0.5 → 输出含两个类别词 + 4D(负效价+高唤醒的中点漂移)"
       - "anger 强度 0.1/0.45/0.9 → 生气/愤怒/怒不可遏 分级词（恼怒/暴怒为独立类别）"
+      - "indignation=0.8：formal 义愤填膺 / colloquial 肺都气炸了（语域梯自设标注）"
     edge_or_counter:
       - example: "仅输出单一 argmax 类别词"
         counter: 单通道无法表达混合情绪（§3.1 类别软边界实证），「又爱又恨」类高频状态不可读
+      - example: "对外正式场合输出「破防了/麻了/笑死」"
+        counter: 语域错配——正式场合的网络语损害可信度；语域梯的正式度标注为自设（无语言学实证），
+          未覆盖类别回退 neutral 是显式契约而非遗漏

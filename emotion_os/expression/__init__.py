@@ -42,7 +42,9 @@ def _mixture_note(entries: list[ExprEntry]) -> str:
 
 class Expressor:
     def describe(self, state: AffectState, top_k: int = 3, min_activation: float = 0.04,
-                 suppressed: bool = False) -> ExpressionOutput:
+                 suppressed: bool = False, register: str = "neutral") -> ExpressionOutput:
+        """register（v0.6）：语域分档——formal（书面/对外正式）/ neutral（默认）/
+        colloquial（口语/对内私下）；未覆盖类别回退 neutral（lexicon.REGISTERS）。"""
         acts = {
             cat: state.activation(cat)
             for cat in state.episodes
@@ -53,7 +55,7 @@ class Expressor:
             ExprEntry(
                 category=cat,
                 zh=CATALOG[cat].zh,
-                word=graded_word(cat, act),
+                word=graded_word(cat, act, register),
                 intensity=round(act, 3),
                 family=CATALOG[cat].family,
             )

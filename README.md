@@ -9,6 +9,14 @@ engine = EmotionEngine(AgentProfile.neurotic_example())
 result = engine.process(event, dt_minutes=1.0)   # → 状态 + 中文分级词表 + 4D 维度双通道
 ```
 
+语域分档（v0.6）：表达按场合选词——对外正式（formal）避口语/网络语，私下（colloquial）避书面成语腔，默认 neutral。语域梯覆盖高频差异类别，**未覆盖类别回退 neutral**（formal 场合下回退词可能仍带口语色彩）：
+
+```python
+out = engine.expressor.describe(engine.state, register="formal")    # 或 "colloquial"
+```
+
+同一状态：formal「又心理防线被击穿又感动」/ neutral「又破防了又感动」/ colloquial「又绷不住了又感动」。
+
 自然语言入口（v0.2）：注入任意 LLM 调用即可把叙事文本转成事件——
 
 ```python
@@ -49,7 +57,7 @@ event = NLEventAdapter(llm_call=claude_cli_call).adapt("反派当众羞辱主角
 - 参数标定：倒U顶点 `FEAR_ENJOYMENT_PEAK=0.84` 由 Andersen 2020 OSF 开放数据拟合
   （Likert 7.55/9，换算假设 `fear_engine = fear_likert/9`；delta-method 95% CI [0.59, 1.09]；
   复现脚本 [scripts/fit_fear_enjoyment_peak.py](scripts/fit_fear_enjoyment_peak.py)）
-- 测试：`python -m pytest tests/ -q`（155 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
-- 任务状态：[.tasks/emotion-os-v0.4.task.md](.tasks/emotion-os-v0.4.task.md)（v0.1–v0.3 见同目录）
+- 测试：`python -m pytest tests/ -q`（162 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
+- 任务状态：[.tasks/emotion-os-v0.6.task.md](.tasks/emotion-os-v0.6.task.md)（v0.1–v0.5 见同目录）
 
 范围：结构化事件输入的研究原型；运行时配置与未决项见架构合同 §8。

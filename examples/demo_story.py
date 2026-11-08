@@ -99,6 +99,12 @@ def main() -> int:
     print(f"  记忆评分（峰终）= {engine.state.memory.remembered_valence:+.2f}"
           f"（峰值×0.5 + 终值×0.5；HE 收尾 → 正分）")
     print(f"  当前最强残留 = {peak_cat}；心情 valence = {engine.state.mood.valence:+.2f}")
+
+    # v0.6 语域对照：同一最终状态在三种场合的表达
+    print("\n语域对照（同一状态，三种场合；lexicon 语域梯，自设标注）：")
+    for reg, label in (("formal", "对外正式"), ("neutral", "通用（默认）"), ("colloquial", "私下口语")):
+        out = engine.expressor.describe(engine.state, register=reg)
+        print(f"  {label:<8} {out.summary or '（平静）'}")
     return 0
 
 
