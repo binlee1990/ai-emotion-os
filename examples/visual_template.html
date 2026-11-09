@@ -274,7 +274,7 @@
 <body>
 <div class="app">
 <aside>
-  <div class="brand"><b>ai-emotion-os</b><span>情绪引擎 · v0.7.0</span></div>
+  <div class="brand"><b>ai-emotion-os</b><span>情绪引擎 · v0.8.0</span></div>
   <nav id="nav">
     <div class="navgroup">概览</div>
     <a href="#home" data-p="home">首页 · 情绪空间</a>
@@ -1171,6 +1171,7 @@ function route() {
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
+document.querySelector('.brand span').textContent = '情绪引擎 · v' + DATA.meta.version;  // 版本随生成数据动态
 route();
 </script>
 </body>

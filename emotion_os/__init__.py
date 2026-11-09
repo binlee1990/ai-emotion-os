@@ -8,11 +8,11 @@
 设计合同：docs/architecture-contract.md；知识来源：research/人类情绪全景调研.md。
 """
 from .core.agent import AgentProfile
-from .core.event import AestheticInfo, BondInfo, Event, MoralInfo, SocialInfo
+from .core.event import AestheticInfo, BondInfo, Event, MoralInfo, PlayInfo, SocialInfo
 from .core.types import EventCategory, Goal, Intent, OCCBranch, Personality
 from .engine import EmotionEngine, ProcessResult
 
-__version__ = "0.7.0"   # 与 pyproject.toml 同步（v0.2 起未同步更新，v0.7 补齐）
+__version__ = "0.8.0"   # 与 pyproject.toml 同步
 
 __all__ = [
     "AestheticInfo",
@@ -26,6 +26,7 @@ __all__ = [
     "MoralInfo",
     "OCCBranch",
     "Personality",
+    "PlayInfo",
     "ProcessResult",
     "SocialInfo",
 ]

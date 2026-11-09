@@ -11,6 +11,7 @@ from ..appraiser import AppraisalResult
 from ..core.agent import AgentProfile
 from ..core.event import Event
 from ..core.state import AffectState
+from .catalog import CATALOG
 
 Acts = dict[str, float]
 
@@ -111,6 +112,14 @@ def _sadness(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out:
         out["social_pain"] = rel * 0.95
         out["heartbreak"] = rel * 0.9
         out["loneliness"] = 0.4 * rel
+    # 被排斥（v0.8 Williams 需求威胁模型）：来源可为群体/陌生人（无需既有关系）——
+    # 反射性疼痛阶段：社会疼痛 + 孤独 + 被无视感（「存在被抹去」是定性访谈核心主题）
+    if e.bond is not None and e.bond.excluded > 0.05:
+        exc = e.bond.excluded
+        out["social_pain"] = max(out.get("social_pain", 0.0), rel * exc * 0.95)
+        out["loneliness"] = max(out.get("loneliness", 0.0), rel * exc * 0.6)
+        # 无处申辩（低控制）时被无视感更强
+        out["invisibility"] = rel * exc * (0.5 + 0.5 * (1.0 - r.control))
     # 共情疼痛：他者受苦 × 共情特质（dACC 共享回路，§1.5.5）
     if r.affects not in ("self",) and ob > 0.1:
         ep = r.goal_relevance * ob * a.empathic_trait
@@ -135,6 +144,13 @@ def _joy(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Act
     # amusement：良性违规（违规+安全距离同时在场，§5.1 McGraw & Warren）
     ext_mag = abs(r.external_standard)
     out["amusement"] = _b01(ext_mag * r.novelty * r.safety_frame * 0.9)
+    # 玩闹欢腾（v0.8 Panksepp PLAY）：社交加成 + 安全框架调制（真痛不是玩；
+    # rough-and-tumble 的躯体-社交欢乐，amusement 之外的 PLAY 子集）——底座用
+    # 相关性而非 goal 促进（玩闹本身即愉悦，不走目标得失通道）
+    if e.play is not None:
+        partnered = 1.0 if e.play.partnered else 0.55
+        sf_ramp = _b01((r.safety_frame - 0.1) / 0.5)   # 破框架（真痛）→ 0
+        out["play_joy"] = _b01(r.goal_relevance * e.play.level * partnered * sf_ramp * 1.6)
     # 他人际遇（§2.3 fortunes-of-others：方向由好恶决定）
     if r.affects not in ("self", a.agent_id):
         att = a.attitude_toward(r.affects)
@@ -225,6 +241,11 @@ def _love(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Ac
     if e.bond.romantic:
         out["heart_flutter"] = _b01(d * (1.0 if e.bond.sudden else 0.4))
         out["romantic_passion"] = _b01(d * 0.8)
+    # 渴望（v0.8 Panksepp LUST 欲望域）：wanting 主导的对象特异渴求——
+    # 与心动区分（flutter=惊喜性吸引，craving=持续渴求）；残余 wanting 池放大
+    # （异地思念的叠加：欲求缠身），持续暴露经状态累积而非事件幅度
+    if e.bond.desire > 0.05:
+        out["craving"] = _b01(rel * e.bond.desire * (0.9 + 0.5 * min(1.0, s.wanting_pool)) * 1.2)
     # 磕到了：目睹（虚构）关系升温（kama muta 粉丝文化变体，§3.3）
     if r.affects not in ("self", a.agent_id):
         out["ke_dao"] = _b01(rel * d * sudden * 1.2)
@@ -274,6 +295,12 @@ def _prospect(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out
     if cond < -0.1 and 0.1 < prob < 0.9:
         # 负向前景中的希望分量：悬念=恐惧+希望复合（§3.3、§2.5 B）——渴望更好结果
         out["hope"] = max(out.get("hope", 0.0), _b01(rel * (-cond) * (1.0 - prob) * 0.8))
+    # 近失效应（v0.8 Clark 2009/2010）：差一点 → 不甘心 + 再试驱动（wanting 由
+    # catalog 标记承载，池累积后可复合「上头」——差一点比差很多更想再来）
+    if e.near_miss > 0.05:
+        nm = e.near_miss
+        out["bu_gan_xin"] = _b01(rel * nm * 0.9)
+        out["disappointment"] = max(out.get("disappointment", 0.0), _b01(rel * nm * (0.4 + 0.4 * r.expectancy_violation)))
     if e.prior_threat_resolved:
         # 解脱强度 ∝ 先前威胁量（残余张力入式；§2.3、§4.3 兴奋转移）
         prior_tension = s.activation("suspense") + s.activation("fear") + s.activation("anxiety")
@@ -286,7 +313,8 @@ def _prospect(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out
 
 # ---------------- pass 2：复合评价器（依赖 pass1 / 状态） ----------------
 
-def _composites(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
+def _composites(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts,
+                pass1_keys: frozenset[str] | None = None) -> None:
     # 解气：先前对该违规者的义愤/愤怒 × 其受罚（R-APP-02：无前置义愤→0；罚错对象→0）
     if e.justice_restored > 0.05:
         target_charge = s.charges.get(e.justice_target, 0.0) if e.justice_target else max(
@@ -333,6 +361,44 @@ def _composites(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, o
     # 意难平：反刍压力的反思性激活（dynamics 维护 rumination）
     if s.rumination > 0.15:
         out["yi_nan_ping"] = _b01(0.55 * s.rumination)
+    # 矛盾（v0.8 目标冲突/混合情绪）：正负并存 → 并存紧张而非相互抵消（Larsen 2001）。
+    # 双通道检测：(a) 评价输入层——正负 goal_impacts 双侧显著即冲突（按目标重要性
+    # 加权，与 appraiser 的 conduciveness 同一口径——对无该目标的主体不得报冲突；
+    # 等强对消时 conduciveness=0、输出层无从感正负，输入层结构是唯一信号）；
+    # (b) 输出层——家族评价器直出（pass1）的正负类别激活均过阈（0.35，防单侧主导
+    # 误报）；两通道取 max，平衡度加权（正负等强时最「撕扯」）。排除集：
+    # 低唤醒背景态（boredom/numb/confusion——负效价是「无事件」的钝化，「温情+无聊」
+    # 不是矛盾）与同事件派生复合类（po_fang/shuang/jie_qi 等 pass2 产物——由本事件
+    # 其它类别点燃，其效价不构成与正侧的对立：破防≠撕扯、解气+喜悦≠矛盾——
+    # 只统计 pass1_keys 保证此性质，黑名单不可枚举）
+    amb_input = 0.0
+    pos_imp = sum(
+        d * a.goal_importance(g)
+        for g, d in e.goal_impacts.items()
+        if d > 0.15 and a.goal_importance(g) > 0.05
+    )
+    neg_imp = sum(
+        -d * a.goal_importance(g)
+        for g, d in e.goal_impacts.items()
+        if d < -0.15 and a.goal_importance(g) > 0.05
+    )
+    if pos_imp > 0.15 and neg_imp > 0.15:
+        lo_i, hi_i = min(pos_imp, neg_imp), max(pos_imp, neg_imp)
+        amb_input = r.goal_relevance * (lo_i / hi_i) * 0.9
+    _bg = {"boredom", "numb", "confusion"}
+    p1 = pass1_keys if pass1_keys is not None else frozenset(out)
+    pos_max = max((v for k, v in out.items() if k in p1 and k not in _bg and CATALOG[k].valence > 0.2), default=0.0)
+    neg_max = max((v for k, v in out.items() if k in p1 and k not in _bg and CATALOG[k].valence < -0.2), default=0.0)
+    amb_output = 0.0
+    if pos_max > 0.35 and neg_max > 0.35:
+        lo_o, hi_o = min(pos_max, neg_max), max(pos_max, neg_max)
+        amb_output = lo_o * (0.5 + 0.5 * lo_o / hi_o) * 1.6
+    out["ambivalence"] = _b01(max(amb_input, amb_output))
+    # 排斥的反思性路径（v0.8 Williams）：疼痛之后按应对资源分流——力量感低
+    # （承不住）+ 排斥重 → 外化攻击（反社会路径：控制需求受威胁的补偿性反应）；
+    # 力量感高者走亲社会路径（求重新接纳，已由 loneliness 倾向承载）
+    if e.bond is not None and e.bond.excluded > 0.4 and r.power < 0.4:
+        out["anger"] = max(out.get("anger", 0.0), _b01(r.goal_relevance * e.bond.excluded * (1.0 - r.power) * 1.2))
 
 
 FAMILY_EVALUATORS = (
@@ -348,5 +414,6 @@ def evaluate_activations(
     out: Acts = {}
     for fn in FAMILY_EVALUATORS:
         fn(r, e, a, s, out)
-    _composites(r, e, a, s, out)
+    pass1_keys = frozenset(out)   # 家族评价器直出（ambivalence 输出层只认原始并存）
+    _composites(r, e, a, s, out, pass1_keys=pass1_keys)
     return {k: v for k, v in out.items() if v > 0.02}

@@ -14,18 +14,19 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
 try:
-    from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
+    from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent, __version__
     from emotion_os.core.event import AestheticInfo, BondInfo, MoralInfo, SocialInfo
     from emotion_os.core.types import TimeOrientation
     from emotion_os.generation.catalog import CATALOG, HALF_LIFE_BY_CATEGORY
     from emotion_os.generation.mapping import FEAR_ENJOYMENT_PEAK, _tent
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
+    from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent, __version__
     from emotion_os.core.event import AestheticInfo, BondInfo, MoralInfo, SocialInfo
     from emotion_os.core.types import TimeOrientation
     from emotion_os.generation.catalog import CATALOG, HALF_LIFE_BY_CATEGORY
@@ -68,19 +69,25 @@ _EVT_META = {
                       "valence": "pos", "attr": "自己·努力归因",
                       "knob": "对自尊目标的促进",
                       "tests": [["test_shortdrama_loop.py", "反杀打脸的 fiero×爽感"],
-                                ["test_sport_social.py", "压哨绝杀：fiero×兴奋转移"]],
-                      "rules": [["R-DYN-03", "兴奋转移：绝杀=fiero×前置唤醒残余"]]},
+                                ["test_sport_social.py", "压哨绝杀：fiero×兴奋转移"],
+                                ["test_v08_gaps.py", "近失：差一点比差很多更想再来；两难：正负并存报矛盾"]],
+                      "rules": [["R-DYN-03", "兴奋转移：绝杀=fiero×前置唤醒残余"],
+                                ["R-APP-10", "近失效应：差一点→不甘心+再试驱动（v0.8）"],
+                                ["R-APP-09", "目标冲突：正负并存→矛盾而非抵消（v0.8 复合检测）"]]},
     "E_violation": {"label": "被冒犯", "zh": "违范/冒犯", "def": "他人违反规范，侵犯自身或所在群体的利益",
                     "valence": "neg", "attr": "他人·故意归因",
                     "knob": "对自尊目标的冲击",
                     "tests": [["test_face_slap.py", "打脸三连：憋屈→解气→罚错对象内疚"]],
                     "rules": [["R-APP-01", "愤怒配置：高相关+他人故意+阻碍+高控制→愤怒"],
                               ["R-APP-02", "解气生成：先前义愤+相称惩罚→解气"]]},
-    "F_bond": {"label": "关系变动", "zh": "联结", "def": "共享关系的发生/增强/修复/断裂",
+    "F_bond": {"label": "关系变动", "zh": "联结", "def": "共享关系的发生/增强/修复/断裂/被排斥",
                "valence": "dual", "attr": "他人·善意或决裂",
                "knob": "关系变化（负=决裂，正=骤增）",
-               "tests": [["test_reunion.py", "骤增触发 kama muta，渐增只生温情"]],
-               "rules": [["R-APP-05", "kama muta：共享关系骤增才触发，渐增不触发"]]},
+               "tests": [["test_reunion.py", "骤增触发 kama muta，渐增只生温情"],
+                         ["test_v08_gaps.py", "排斥：群体无视→疼痛+被无视感；思念→渴望"]],
+               "rules": [["R-APP-05", "kama muta：共享关系骤增才触发，渐增不触发"],
+                         ["R-APP-06", "被排斥：无需既有关系→疼痛/被无视/反社会分流（v0.8）"],
+                         ["R-APP-08", "对象特异渴望：wanting 主导，与心动分流（v0.8）"]]},
     "G_comparison": {"label": "与人比较", "zh": "比较/地位", "def": "与他人对照下的自我定位变化",
                      "valence": "dual", "attr": "无行为者·纯比较",
                      "knob": "比较方向（负=对方占优）",
@@ -99,8 +106,9 @@ _EVT_META = {
     "J_body": {"label": "躯体感受", "zh": "身体状态", "def": "躯体状态变化引发的内在感受",
                "valence": "dual", "attr": "自己·身体状态",
                "knob": "躯体感受（负=不适）",
-               "tests": [["test_sport_social.py", "运动场景：跑者高潮/躯体活力"]],
-               "rules": []},
+               "tests": [["test_sport_social.py", "运动场景：跑者高潮/躯体活力"],
+                        ["test_v08_gaps.py", "嬉戏：有伴玩闹>独玩，安全破损→归零"]],
+               "rules": [["R-APP-07", "社交嬉戏：PLAY 玩闹欢腾，安全框架坡道（v0.8）"]]},
     "K_fiction": {"label": "虚构剧情", "zh": "想象/虚构", "def": "虚构框架内代入经历的一切",
                   "valence": "dual", "attr": "虚构·代入",
                   "knob": "剧情对牵挂角色的冲击",
@@ -893,9 +901,9 @@ def main() -> int:
         ],
         "rows": [
             ("被排斥/被拉黑/被孤立", "F_bond",
-             "break_up 路径 → 社会疼痛/孤独/心碎（Williams 排斥模型是文献独立大域，引擎折入联结类；不止恋爱决裂，一切「被排除在关系之外」同路径）"),
+             "excluded 专属路径（v0.8，Williams 需求威胁模型）：来源可为群体/陌生人，无需既有关系 → 社会疼痛/孤独/被无视感，低力量感分流反社会愤怒；特定关系断裂走 break_up（心碎主导）"),
             ("两难抉择（职业 vs 家庭、忠义难两全）", "（无需独立类）",
-             "goal_impacts 多键混合符号：一键促进、一键阻碍 → 快乐/焦虑复合激活"),
+             "goal_impacts 多键混合符号 → ambivalence 复合检测（v0.8）：正负并存报「矛盾」而非对消，平衡度加权；等强对消时由输入层通道检出"),
             ("集体仪式/演唱会大合唱/球赛人浪", "F_bond",
              "affects=\"group:x\" + bond 骤增 → 集体欢腾 collective_effervescence"),
             ("机会窗口（末班车/限时 offer/比赛最后一分钟）", "B_threat / D_achievement",
@@ -950,9 +958,28 @@ def main() -> int:
         for name, tag, note, seq in _shuangpu_seqs()
     ]
 
+    # meta 动态化（复审发现写死 0.7.0/163/7 会随版本失真）：版本/发布数读包元数据，
+    # 测试数 pytest --collect-only 实收（生成器为离线脚本，subprocess 可接受；
+    # 收集失败回退 None → 模板显示「—」而非错误数字）
+    emotion_os_version = __version__
+    n_releases = int(emotion_os_version.split(".")[1])
+    n_tests = None
+    try:
+        import subprocess
+        collected = subprocess.run(
+            [sys.executable, "-m", "pytest", str(ROOT / "tests"), "--collect-only", "-q"],
+            capture_output=True, text=True, timeout=120, cwd=str(ROOT),
+        )
+        m = re.search(r"(\d+) tests? collected", collected.stdout)
+        if m:
+            n_tests = int(m.group(1))
+    except Exception:
+        pass
+
     data = {
         "meta": {
-            "version": "0.7.0", "categories": len(CATALOG), "tests": 163, "releases": 7,
+            "version": emotion_os_version, "categories": len(CATALOG),
+            "tests": n_tests, "releases": n_releases,
             "peak": FEAR_ENJOYMENT_PEAK,
             "peak_ci": "[0.59, 1.09]",
         },

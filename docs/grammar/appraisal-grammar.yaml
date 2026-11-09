@@ -68,6 +68,75 @@ rules:
       - example: "每日递增 1% 的亲密感累计到同等幅度"
         counter: 若触发 kama muta 则违反骤增条件——正确输出为 companionate warmth；感动扳机是变化率不是幅值
 
+  - rule_id: R-APP-06
+    description: >
+      被排斥（v0.8 Williams 2007/2009 需求威胁模型）：被群体/陌生人排斥（BondInfo.excluded，无需既有关系——
+      与 break_up 的特定关系断裂互补）→ 反射性社会疼痛 + 孤独 + 被无视感；反思阶段按应对资源分流——
+      力量感低且排斥重时转向外化攻击（反社会路径），力量感高者维持求重新接纳（亲社会路径）。
+    formal_check: pytest:tests/scenarios/test_v08_gaps.py::TestOstracism
+    formal_check_note: 场景断言三连（群体排斥→疼痛+被无视出场；低力量画像→反社会 anger 分量；既有关系断裂 break_up 不误报 invisibility 主导）。
+    valid_examples:
+      - "搬进新宿舍被全员无视(group 排斥, excluded=0.8) → social_pain>0.5 + invisibility 激活（被当空气）"
+      - "低力量感主体被群体排斥(excluded=0.9, power<0.4) → 除疼痛外 anger 分量显著（反社会路径）"
+    edge_or_counter:
+      - example: "恋人明确提出分手（特定关系断裂 break_up，非排斥）"
+      - counter: 若 invisibility 主导则与 break_up 语义混淆——正确输出 heartbreak 主导（哀悼特定关系），排斥路径不点燃
+
+  - rule_id: R-APP-07
+    description: >
+      社交嬉戏（v0.8 Panksepp PLAY 系统：rough-and-tumble 式玩闹）：PlayInfo 在场 → 玩闹欢腾
+      （高唤醒正效价躯体-社交欢乐，amusement 只覆盖幽默子集）；社交加成（有伴>独玩）；
+      安全框架调制（safety_frame 破损=真痛，不再是玩）。
+    formal_check: pytest:tests/scenarios/test_v08_gaps.py::TestPlay
+    formal_check_note: 成对断言（有伴玩闹>独玩同等水平；safety_frame=0 玩闹欢腾归零）。
+    valid_examples:
+      - "和好友追逐打闹(level=0.8, partnered) → play_joy>0.5（笑作一团）"
+      - "独自动作游戏(level=0.8, 无伴) → play_joy 显著低于有伴（躯体自娱折扣）"
+    edge_or_counter:
+      - example: "玩闹中对方真下重手(safety_frame→0)"
+      - counter: 若 play_joy 维持高位则违反安全框架前提——真痛不是玩，应转恐惧/愤怒族
+
+  - rule_id: R-APP-08
+    description: >
+      对象特异渴望（v0.8 Panksepp LUST 欲望域）：BondInfo.desire（wanting 主导的浪漫-躯体渴求，
+      如异地思念/朝思暮想）→ craving；与心动（heart_flutter=惊喜性吸引）分流；残余 wanting 池放大
+      （持续暴露叠加：欲求缠身）。建模欲望的动机结构（wanting≫liking），不建显式性内容类别。
+    formal_check: pytest:tests/scenarios/test_v08_gaps.py::TestCraving
+    formal_check_note: 成对断言（思念事件 craving>heart_flutter 分流；wanting 池累积后同事件 craving 放大）。
+    valid_examples:
+      - "异地恋人月余未见(desire=0.8) → craving（朝思暮想）> heart_flutter（无新刺激）"
+      - "反复思念叠加后（wanting 池↑）再想 → craving 比首想更强（缠身放大）"
+    edge_or_counter:
+      - example: "日常陪伴在侧（desire=0，bond.delta 正）"
+      - counter: 若输出 craving 则混淆依恋与欲求——正确输出 attachment_warmth/tenderness 主导
+
+  - rule_id: R-APP-09
+    description: >
+      目标冲突/混合情绪（v0.8 Larsen 2001 正负并存）：正负两侧激活均显著（各>0.35）→ ambivalence
+      （并存紧张而非相互抵消）；平衡度加权（正负等强最「撕扯」）；单侧主导不误报。
+    formal_check: pytest:tests/scenarios/test_v08_gaps.py::TestAmbivalence
+    formal_check_note: 成对断言（两难事件 ambivalence 出场；纯负事件 ambivalence=0）。
+    valid_examples:
+      - "升职外地 vs 留守病母（正负 goal_impacts 并存）→ ambivalence（五味杂陈/撕扯）激活"
+      - "又爱又恨的对方（爱意+怨怼同时激活）→ ambivalence + 两侧原始类别并存输出"
+    edge_or_counter:
+      - example: "纯损失事件（仅负侧激活）"
+      - counter: 若输出 ambivalence 则违反双侧阈值——正确输出为负侧类别（sadness 等）单主导
+
+  - rule_id: R-APP-10
+    description: >
+      近失效应（v0.8 Clark 2009/2010 赌博神经证据）：差一点（Event.near_miss：目标未达成但接近）→
+      不甘心（bu_gan_xin）+ 失望；再试驱动由 wanting 标记承载（差一点比差很多更想再来——
+      近失与真赢激活相似，vmPFC/多巴胺系统），池累积后可复合「上头」。
+    formal_check: pytest:tests/scenarios/test_v08_gaps.py::TestNearMiss
+    formal_check_note: 成对断言（差一点>差很多的 bu_gan_xin 与再试 wanting；near_miss=0 不误报）。
+    valid_examples:
+      - "彩票差一个号(near_miss=0.9) → bu_gan_xin 高激活 + wanting 池显著注入（想立刻再买）"
+      - "比赛最后一秒绝杀未进(near_miss=0.8) → 不甘心 + disappointment 复合"
+    edge_or_counter:
+      - example: "目标毫无悬念地未达成（near_miss=0）"
+      - counter: 若输出 bu_gan_xin 则违反近失前提——正确输出仅 disappointment（差很多=纯失望，无再试驱动）
+
   - rule_id: R-INT-01
     description: >
       强度乘法结构（调研§6.3.3、§1.1）：intensity = 事件因子(§4.1) × 个体因子(§4.2) × 状态因子(§4.3)；

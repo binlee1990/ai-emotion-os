@@ -98,6 +98,20 @@ class AppraisalEngine:
             # 依恋需要：关系变化本身即相关（骤增/断裂都是强扳机，§1.5.8/§1.5.5）
             bond_mag = event.bond.delta if not event.bond.break_up else 1.0
             goal_relevance = max(goal_relevance, _clip(0.3 + 0.7 * bond_mag))
+            # 归属需要：被排斥本身即相关（v0.8 Williams 需求威胁模型）——四需求
+            # （归属/自尊/控制/意义存在）在此折算为单一强度锚：归属为主、自尊由
+            # severity 传导（细分需求记账留待需要时再拆，不预先建四分池）
+            if event.bond.excluded > 0.05:
+                goal_relevance = max(goal_relevance, _clip(0.3 + 0.7 * event.bond.excluded))
+            # 欲求需要：渴望本身即相关（v0.8 LUST 动机结构——对象特异渴求是
+            # 强扳机，不需 goal_impacts 注解）
+            if event.bond.desire > 0.05:
+                goal_relevance = max(goal_relevance, _clip(0.3 + 0.7 * event.bond.desire))
+        if event.play is not None:
+            # 嬉戏需要：PLAY 是先天动机系统（v0.8 Panksepp），玩闹本身即相关。
+            # 玩伴态度传导不在此实现（affects=self 是常态，借用 affects 会误触
+            # 共情折扣；partner 字段留待真实需要时再建，不预建）
+            goal_relevance = max(goal_relevance, _clip(0.3 + 0.5 * event.play.level))
         if event.social is not None:
             # 自尊需要：社会比较默认触及（§2.5 G）
             goal_relevance = max(goal_relevance, max(0.35, 0.8 * agent.goal_importance("esteem")))

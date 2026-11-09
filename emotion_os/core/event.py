@@ -40,6 +40,21 @@ class BondInfo:
     sudden: bool = True            # 骤增（True 触发 kama muta；False 渐进→温情）
     break_up: bool = False         # 拒绝/背叛/排斥（社会疼痛，§1.5.5）
     romantic: bool = False         # 浪漫语境（心动）
+    excluded: float = 0.0          # 被排斥/被拒程度 0–1（v0.8 Williams 需求威胁模型：
+                                   # 排斥源可为群体/陌生人，无需既有关系——与 break_up
+                                   # 的「特定关系断裂」互补；四需求折算见 appraiser）
+    desire: float = 0.0            # 对象特异性渴望 0–1（v0.8 Panksepp LUST 欲望域：
+                                   # wanting 主导的浪漫-躯体渴求，如异地思念/朝思暮想；
+                                   # 建模动机结构，不建显式性内容类别）
+
+
+@dataclass(frozen=True)
+class PlayInfo:
+    """社交嬉戏信息（v0.8 Panksepp PLAY 系统：rough-and-tumble 式玩闹——
+    追逐/打闹/笑作一团；amusement 只覆盖幽默子集，玩闹的躯体-社交欢乐由本信息承载）。"""
+
+    level: float = 0.5             # 玩闹水平 0–1
+    partnered: bool = True         # 有伴（社交嬉戏）vs 独玩（躯体自娱）
 
 
 @dataclass(frozen=True)
@@ -85,6 +100,7 @@ class Event:
     social: SocialInfo | None = None
     bond: BondInfo | None = None
     aesthetic: AestheticInfo | None = None
+    play: PlayInfo | None = None               # 社交嬉戏（v0.8 PLAY 系统）
 
     # 复合/领域特化标志
     justice_restored: float = 0.0              # 违规者受罚程度 0–1（解气前置之一，§2.5 E）
@@ -93,6 +109,8 @@ class Event:
     prior_adversity_resolved: bool = False     # 先前逆境被战胜（fiero，§5.3）
     effort: float = 0.0                        # 主体投入的努力 0–1（骄傲/fiero 权重）
     insight: bool = False                      # 理解发生（aha，§2.5 H）
+    near_miss: float = 0.0                     # 差一点程度 0–1（v0.8 近失效应：目标未达成
+                                               # 但接近——赌博/竞技文献，驱动再试）
 
     # 安全框架与虚构（§6.3.4）
     safety_frame: float = 1.0                  # 1=确认安全/虚构 … 0=真实后果

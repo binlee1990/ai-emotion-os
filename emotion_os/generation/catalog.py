@@ -138,6 +138,17 @@ _CATALOG: list[Category] = [
     _c("naches", "欣慰(纳赫)", "naches (pride in protege's success)", SOCIAL_MORAL, 0.65, 0.4, 0.3, 0.05, "为后辈骄傲"),
     _c("chills", "颤栗快感", "chills (peak hedonic response)", AESTHETIC, 0.75, 0.85, 0.0, 0.3, "", liking=0.9),
     _c("collective_effervescence", "集体欢腾", "collective effervescence", SOCIAL_MORAL, 0.7, 0.7, 0.3, 0.1, "融入集体", liking=0.7),
+    # v0.8 补全（深度调研缺口：文献有独立地位、引擎此前折入或未建——§8 v0.8 候选清单）
+    # 被排斥（Williams 需求威胁模型）：被无视感是排斥定性访谈核心主题
+    _c("invisibility", "被无视感", "invisibility (ostracism-induced)", SADNESS, -0.55, 0.35, -0.5, 0.1, "求被看见/重新加入"),
+    # PLAY 嬉戏（Panksepp 七原生系统之一）：rough-and-tumble 社交欢乐
+    _c("play_joy", "玩闹欢腾", "playful social joy (Panksepp PLAY)", JOY, 0.7, 0.85, 0.3, 0.2, "追逐打闹/笑作一团", wanting=0.5, liking=0.9),
+    # LUST 欲望域（Panksepp）：wanting 主导的对象特异渴望（动机结构，不建显式性内容）
+    _c("craving", "渴望", "longing/desire (LUST-system craving)", LOVE, 0.15, 0.7, -0.2, 0.1, "靠近/求接触", wanting=0.95, liking=0.3),
+    # 目标冲突/混合情绪：正负并存的认识性紧张
+    _c("ambivalence", "矛盾", "ambivalence (co-activated mixed valence)", EPISTEMIC, 0.0, 0.5, -0.3, 0.2, "悬而未决/摇摆"),
+    # 近失效应（Clark 2009/2010）：差一点激活与真赢相似并驱动再试——wanting 高是本类要点
+    _c("bu_gan_xin", "不甘心", "near-miss vexation (so close)", PROSPECT, -0.45, 0.65, -0.1, 0.5, "再试一次", wanting=0.85, liking=0.1),
 ]
 
 CATALOG: dict[str, Category] = {c.id: c for c in _CATALOG}
@@ -150,6 +161,7 @@ HALF_LIFE_BY_CATEGORY: dict[str, float] = {
     "jie_qi": 20.0,
     "shuang": 25.0,
     "po_fang": 30.0,
+    "ambivalence": 30.0,  # 决策性撕扯比认识性惊异持久（epistemic 族默认 5 分钟过短；自设待标定）
 }
 
 assert len(CATALOG) >= 50, "架构合同：类别目录 ≥50"
