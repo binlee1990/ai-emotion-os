@@ -160,6 +160,17 @@
   .vchip { display: inline-block; border: 1px solid var(--hairline); border-radius: 99px;
     padding: 1px 10px; margin: 1px 4px 1px 0; font-size: 12px; background: #fff; white-space: nowrap; }
   .vchip i { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--grey); }
+  .vchip.mech { border-color: var(--vermilion); color: #A33B2A; background: #FBF1EE; }
+  /* 爽点图谱 */
+  .spsteps { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+  .spstep { border: 1px solid var(--hairline); border-radius: 8px; background: #fff;
+    padding: 9px 12px; min-width: 180px; max-width: 260px; flex: 1 1 200px; }
+  .spstep b { font-size: 13px; display: inline; }
+  .spcat { margin-left: 6px; vertical-align: 1px; font-family: var(--mono); font-size: 10px; }
+  .spfired { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 2px; }
+  .spsay { font-family: var(--serif); font-size: 13.5px; font-weight: 700;
+    color: #38405A; margin-top: 6px; }
+  .sparrow { align-self: center; color: var(--vermilion); font-size: 16px; font-weight: 700; }
   a.vchip { color: var(--indigo); text-decoration: none; border-color: #C4D2E2; }
   a.vchip:hover { background: var(--card); }
   .relrow { font-size: 12.5px; color: #454B5C; margin-bottom: 7px; display: flex;
@@ -277,6 +288,7 @@
     <a href="#uu" data-p="uu">倒 U 实验室</a>
     <a href="#peakend" data-p="peakend">峰终演示</a>
     <a href="#replay" data-p="replay">叙事回放</a>
+    <a href="#shuangpu" data-p="shuangpu">爽点图谱</a>
     <a href="#compare" data-p="compare">情绪对比</a>
     <div class="navgroup">知识</div>
     <a href="#mechs" data-p="mechs">机制图鉴</a>
@@ -565,6 +577,19 @@ function pageEvents() {
          <button class="fam" data-v="dual">双向 ${cnt.dual}</button>
          <button class="fam" data-v="story">回放中出现 ${ts.filter(t => t.acts.length).length}</button>
        </div>
+       <div class="panel" id="covpanel" style="margin-bottom:12px">
+         <h3 style="margin-bottom:2px">为什么只有 11 类——覆盖映射</h3>
+         <div class="sub">${DATA.coverage.note}</div>
+         <div class="tablewrap" style="margin-bottom:8px"><table style="min-width:0">
+           <thead><tr><th style="width:220px">常见事件类型（文献/生活）</th><th style="width:130px">归入</th><th>路径说明</th></tr></thead>
+           <tbody>${DATA.coverage.rows.map(([t, c, d]) => `
+             <tr><td><b style="font-weight:600">${t}</b></td>
+                 <td class="f">${c.split(/[^A-Za-z_]+/).filter(s => s.includes('_')).map(tid =>
+                   `<a class="vchip" style="cursor:pointer" data-jump="${tid}">${tid}</a>`).join(' ') || c}</td>
+                 <td style="font-size:12.5px;color:#454B5C">${d}</td></tr>`).join('')}</tbody>
+         </table></div>
+         <div class="src">横切维度（适用于每一类）：${DATA.coverage.cross.map(([k, v]) => `「${k}」${v}`).join('；')}。</div>
+       </div>
        <div id="evlist"></div>
        <div class="src">徽标（受损/利好/双向）与归因标注为展示层归纳；点燃/余波/表达全部为引擎真实输出（reader 画像，单事件孤立运行，与叙事回放页的累积状态不同）。</div>`);
   let vf = 'all', open = null;
@@ -611,6 +636,14 @@ function pageEvents() {
       open = row;
     } else open = null;
   }
+  function jumpTo(tid) {
+    vf = 'all';
+    document.getElementById('evq').value = '';
+    document.querySelectorAll('#evfilter .fam').forEach(x => x.classList.toggle('on', x.dataset.v === 'all'));
+    rows();
+    const row = document.querySelector(`.evtrow[data-id="${tid}"]`);
+    if (row) { toggle(row); row.scrollIntoView({ block: 'start' }); }
+  }
   document.getElementById('evfilter').addEventListener('click', e => {
     const b = e.target.closest('.fam'); if (!b) return;
     vf = b.dataset.v;
@@ -618,6 +651,10 @@ function pageEvents() {
     rows();
   });
   document.getElementById('evq').addEventListener('input', rows);
+  document.getElementById('covpanel').addEventListener('click', e => {
+    const a = e.target.closest('[data-jump]');
+    if (a) jumpTo(a.dataset.jump);
+  });
   document.getElementById('evlist').addEventListener('click', e => {
     const h = e.target.closest('.er-head');
     if (h) { toggle(h.closest('.evtrow')); return; }
@@ -958,6 +995,45 @@ function pageReplay(arg) {
   show(cur);
 }
 
+/* ============ 爽点图谱 ============ */
+function pageShuangpu() {
+  const ts = DATA.shuangpu;
+  const tags = [...new Set(ts.map(t => t.tag))];
+  $(head('爽点图谱', `爽点不是第 12 种事件类型，而是「11 类事件 × 跨事件机制」的序列模式：压抑期（憋屈记账）→ 反转（解气/爽/fiero）→ 钩子。下面 ${ts.length} 个工业爽点的每一步点燃都由引擎真算（同一 reader 画像顺序运行，跨事件机制真实生效）。`)
+    + `<div class="fambar" id="spfilter">
+         <button class="fam on" data-t="all">全部 ${ts.length}</button>
+         ${tags.map(t => `<button class="fam" data-t="${t}">${t}</button>`).join('')}
+       </div>
+       <div id="splist"></div>
+       <div class="src">爽点清单归纳自短剧/网文工业实践（扮猪吃虎、打脸、借刀杀人、追妻火葬场等）与调研 §5.4；序列为手写构造，点燃/轨迹为引擎真实输出。</div>`);
+  let tag = 'all';
+  function rows() {
+    document.querySelectorAll('#spfilter .fam').forEach(b => b.classList.toggle('on', b.dataset.t === tag));
+    document.getElementById('splist').innerHTML = ts.filter(t => tag === 'all' || t.tag === tag)
+      .map((t, i) => `
+      <div class="panel" style="margin-bottom:12px">
+        <h3 style="margin-bottom:2px">${t.name}
+          <span class="badge ghost" style="margin-left:8px;vertical-align:2px">${t.tag}</span></h3>
+        <div class="sub">${t.note}</div>
+        <div class="spsteps">${t.steps.map((s, j) => `
+          <div class="spstep">
+            <b>${j + 1}. ${s.label}</b>
+            <span class="badge ghost spcat">${s.cat}</span>
+            <div class="spfired">${s.fired.map(f => `
+              <span class="vchip${f.mech ? ' mech' : ''}" title="${f.zh}${f.mech ? '（跨事件机制点燃）' : ''}">${f.mech ? '★' : ''}${f.word && f.word !== f.zh ? f.word + '（' + f.zh + '）' : f.zh}<i> ${f.intensity.toFixed(2)}</i></span>`).join('')
+              || '<span style="color:var(--grey)">（无显著情绪）</span>'}</div>
+            ${s.say ? `<div class="spsay">「${s.say}」</div>` : ''}
+          </div>`).join('<div class="sparrow">→</div>')}</div>
+      </div>`).join('') || '<div style="color:var(--grey)">无匹配</div>';
+  }
+  document.getElementById('spfilter').addEventListener('click', e => {
+    const b = e.target.closest('.fam'); if (!b) return;
+    tag = tag === b.dataset.t ? 'all' : b.dataset.t;
+    rows();
+  });
+  rows();
+}
+
 /* ============ 情绪对比 ============ */
 function pageCompare() {
   $(head('情绪对比', '选 2–4 个情绪类别，在 4D 坐标上并排对比（雷达图 + 数值表）。')
@@ -1081,8 +1157,8 @@ function pageLLM() {
 /* ============ 路由 ============ */
 const PAGES = { home: pageHome, emotions: pageEmotions, events: pageEvents,
   lexicon: pageLexicon, params: pageParams, sim: pageSim, uu: pageUU,
-  peakend: pagePeakEnd, replay: pageReplay, compare: pageCompare,
-  mechs: pageMechs, llm: pageLLM };
+  peakend: pagePeakEnd, replay: pageReplay, shuangpu: pageShuangpu,
+  compare: pageCompare, mechs: pageMechs, llm: pageLLM };
 function route() {
   const h = (location.hash || '#home').slice(1);
   const at = h.indexOf('@');

@@ -20,12 +20,14 @@ from pathlib import Path
 try:
     from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
     from emotion_os.core.event import AestheticInfo, BondInfo, MoralInfo, SocialInfo
+    from emotion_os.core.types import TimeOrientation
     from emotion_os.generation.catalog import CATALOG, HALF_LIFE_BY_CATEGORY
     from emotion_os.generation.mapping import FEAR_ENJOYMENT_PEAK, _tent
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from emotion_os import AgentProfile, EmotionEngine, Event, EventCategory, Intent
     from emotion_os.core.event import AestheticInfo, BondInfo, MoralInfo, SocialInfo
+    from emotion_os.core.types import TimeOrientation
     from emotion_os.generation.catalog import CATALOG, HALF_LIFE_BY_CATEGORY
     from emotion_os.generation.mapping import FEAR_ENJOYMENT_PEAK, _tent
 
@@ -202,6 +204,130 @@ def _fire(agent: AgentProfile, ev: Event, top: int = 3) -> list:
     return [{"zh": en.zh, "word": en.word, "cat": en.category,
              "intensity": _r(en.intensity, 2), "family": en.family}
             for en in expr.entries]
+
+
+def _shuangpu_seqs() -> list:
+    """12 个工业爽点的代表序列（2-3 事件）：手写构造，点燃真算。
+    结构均符合调研 §5.4：压抑期（憋屈记账）→ 反转（解气/爽/fiero）→ 钩子。"""
+    L, T, F, C, A, V, G, N, I, B, K = (EventCategory.LOSS, EventCategory.THREAT,
+                                       EventCategory.BOND, EventCategory.FRUSTRATION,
+                                       EventCategory.ACHIEVEMENT, EventCategory.VIOLATION,
+                                       EventCategory.COMPARISON, EventCategory.NOVELTY,
+                                       EventCategory.AESTHETIC, EventCategory.BODY,
+                                       EventCategory.FICTION)
+    return [
+        ("当众打脸", "打脸系", "爽点原型：憋屈记账（怒账 charges）→ 惩罚达成 → 解气+爽。完整八幕见叙事回放。",
+         [("反派当众羞辱主角", STORY[0][2]),
+          ("当众反杀，一战成名", STORY[5][2])]),
+        ("扮猪吃虎", "身份系", "读者早知底牌（上帝视角）——确定性爽感：身份揭晓的惊讶放大自豪。",
+         [("隐世高手被当众贬低", Event(V, affects="hero", caused_by="反派爪牙", intent=Intent.DELIBERATE,
+                                    goal_impacts={"esteem": -0.5}, novelty=0.3, pleasantness=-0.5,
+                                    expectancy_violation=0.3, probability=1.0, control_hint=0.7,
+                                    moral=MoralInfo(severity=0.5, victim="hero", violator="反派爪牙"))),
+          ("身份揭晓，全场跪了", Event(N, affects="hero", caused_by=None, intent=Intent.NONE,
+                                    goal_impacts={"esteem": 0.9}, novelty=0.95,
+                                    expectancy_violation=0.95, probability=1.0, insight=True))]),
+        ("借刀杀人", "智斗系", "反派设局 → 主角反用局中局：怒账匹配惩罚（R-APP-02），义愤转化为解气。",
+         [("反派设局构陷", Event(V, affects="self", caused_by="反派", intent=Intent.DELIBERATE,
+                               goal_impacts={"justice": -0.5, "esteem": -0.4}, novelty=0.5,
+                               pleasantness=-0.6, expectancy_violation=0.4, probability=1.0,
+                               control_hint=0.5,
+                               moral=MoralInfo(severity=0.6, victim="self", violator="反派"))),
+          ("反手借势，反派自食恶果", Event(A, affects="self", caused_by="self", intent=Intent.DELIBERATE,
+                                        goal_impacts={"esteem": 0.7}, novelty=0.8, pleasantness=0.8,
+                                        expectancy_violation=0.7, probability=1.0, effort=0.8,
+                                        justice_restored=0.85, justice_target="反派"))]),
+        ("宴会羞辱反转", "身份系", "三段式：羞辱（憋屈）→ 曝光（震惊）→ 变脸（幸灾乐祸×怒账加成）。",
+         [("豪门宴会上被当众羞辱", Event(V, affects="self", caused_by="势利眼", intent=Intent.DELIBERATE,
+                                     goal_impacts={"esteem": -0.7}, novelty=0.5, pleasantness=-0.7,
+                                     expectancy_violation=0.4, probability=1.0, control_hint=0.3,
+                                     moral=MoralInfo(severity=0.7, victim="self", violator="势利眼"))),
+          ("财团掌舵人当众叫他「少爷」", Event(N, affects="self", caused_by=None, intent=Intent.NONE,
+                                          goal_impacts={"esteem": 0.8}, novelty=0.9,
+                                          expectancy_violation=0.9, probability=1.0, insight=True)),
+          ("势利眼当场脸色煞白", Event(G, affects="势利眼", caused_by=None, intent=Intent.NONE,
+                                   goal_impacts={}, novelty=0.7, pleasantness=0.5,
+                                   probability=1.0,
+                                   social=SocialInfo(direction="down", deservedness=0.8,
+                                                     domain="status")))]),
+        ("绝境反杀", "反杀系", "前置威胁的唤醒残余放大胜利——fiero×兴奋转移（R-DYN-03）。",
+         [("被围困，走投无路", Event(T, affects="self", caused_by="反派", intent=Intent.DELIBERATE,
+                                 goal_impacts={"esteem": -0.6}, novelty=0.7, pleasantness=-0.7,
+                                 expectancy_violation=0.6, probability=0.85, urgency=0.9,
+                                 control_hint=0.1,
+                                 moral=MoralInfo(severity=0.6, victim="self", violator="反派"))),
+          ("绝地翻盘，一招制敌", Event(A, affects="self", caused_by="self", intent=Intent.DELIBERATE,
+                                    goal_impacts={"esteem": 0.9, "craft": 0.6}, novelty=0.9,
+                                    pleasantness=0.9, expectancy_violation=0.9, probability=0.15,
+                                    urgency=0.95, effort=0.9, prior_adversity_resolved=True,
+                                    justice_restored=0.7, justice_target="反派"))]),
+        ("追妻火葬场", "情感系", "决裂→反刍积累意难平→挽回骤增触发 kama muta：负谷越深，峰值越甜（峰终定律）。",
+         [("决裂，对方转身离开", Event(F, affects="self", caused_by="挚爱", intent=Intent.DELIBERATE,
+                                   goal_impacts={"bond": -0.8}, novelty=0.8, pleasantness=-0.8,
+                                   expectancy_violation=0.7, probability=1.0, control_hint=0.2,
+                                   reversibility=0.4,
+                                   bond=BondInfo(delta=0.0, sudden=False, break_up=True))),
+          ("追悔莫及，意识到失去", Event(L, affects="self", caused_by="self", intent=Intent.DELIBERATE,
+                                    goal_impacts={"bond": -0.6}, novelty=0.3, pleasantness=-0.7,
+                                    probability=1.0, reversibility=0.3,
+                                    time_orientation=TimeOrientation.PAST)),
+          ("挽回成功，破镜重圆", Event(F, affects="self", caused_by="挚爱", intent=Intent.DELIBERATE,
+                                   goal_impacts={"bond": 0.8}, novelty=0.8, pleasantness=0.9,
+                                   probability=1.0,
+                                   bond=BondInfo(delta=0.8, sudden=True)))]),
+        ("失而复得", "情感系", "失去（悲伤）→ 找回（解脱+喜悦）：威胁解除的 relief 与获得 joy 复合。",
+         [("珍视之物失去", Event(L, affects="self", caused_by=None, intent=Intent.NONE,
+                             goal_impacts={"bond": -0.7}, novelty=0.4, pleasantness=-0.7,
+                             expectancy_violation=0.5, probability=1.0, reversibility=0.3)),
+          ("失而复得", Event(A, affects="self", caused_by=None, intent=Intent.NONE,
+                          goal_impacts={"bond": 0.7}, novelty=0.8, pleasantness=0.8,
+                          expectancy_violation=0.7, probability=1.0,
+                          prior_threat_resolved=True))]),
+        ("磕糖心动", "情感系", "联结骤增触发心动+kama muta（R-APP-05）；糖点密度=骤增频次。",
+         [("暧昧对象突然表白", Event(F, affects="self", caused_by="暧昧对象", intent=Intent.DELIBERATE,
+                                 goal_impacts={"bond": 0.6}, novelty=0.8, pleasantness=0.85,
+                                 probability=1.0,
+                                 bond=BondInfo(delta=0.6, sudden=True, romantic=True))),
+          ("当众官宣，全场祝福", Event(F, affects="self", caused_by="恋人", intent=Intent.DELIBERATE,
+                                   goal_impacts={"bond": 0.7}, novelty=0.7, pleasantness=0.9,
+                                   probability=1.0,
+                                   bond=BondInfo(delta=0.7, sudden=True, romantic=True)))]),
+        ("沉冤得雪", "正义系", "被冤枉（委屈+义愤记账）→ 真相大白+恶人受罚（解气）：正义目标的完整闭环。",
+         [("被诬陷，百口莫辩", Event(V, affects="self", caused_by="构陷者", intent=Intent.DELIBERATE,
+                                 goal_impacts={"justice": -0.6, "esteem": -0.7}, novelty=0.6,
+                                 pleasantness=-0.7, expectancy_violation=0.6, probability=1.0,
+                                 control_hint=0.2,
+                                 moral=MoralInfo(severity=0.8, victim="self", violator="构陷者"))),
+          ("真相大白，构陷者伏法", Event(A, affects="self", caused_by="self", intent=Intent.DELIBERATE,
+                                    goal_impacts={"justice": 0.8, "esteem": 0.5}, novelty=0.9,
+                                    pleasantness=0.85, expectancy_violation=0.85, probability=1.0,
+                                    effort=0.7, justice_restored=0.9, justice_target="构陷者"))]),
+        ("重生先知", "金手指系", "前世惨死（绝望谷底）→ 重生全知（希望+期待）：已知剧本=不确定性归零的爽。",
+         [("前世众叛亲离，惨淡收场", Event(L, affects="self", caused_by=None, intent=Intent.NONE,
+                                      goal_impacts={"bond": -1.0, "esteem": -0.8}, novelty=0.5,
+                                      pleasantness=-0.9, probability=1.0, reversibility=0.0)),
+          ("重生回到一切之前", Event(N, affects="self", caused_by=None, intent=Intent.NONE,
+                                   goal_impacts={"esteem": 0.4, "bond": 0.3}, novelty=0.85,
+                                   pleasantness=0.7, expectancy_violation=0.85, probability=0.95,
+                                   insight=True))]),
+        ("变废为宝", "金手指系", "被嘲笑（轻视）→ 神器认主（震惊+爽）：低起点放大反转幅度。",
+         [("捡了破剑被全场嘲笑", Event(V, affects="self", caused_by="围观者", intent=Intent.DELIBERATE,
+                                   goal_impacts={"esteem": -0.3}, novelty=0.4, pleasantness=-0.4,
+                                   expectancy_violation=0.3, probability=1.0, control_hint=0.6,
+                                   moral=MoralInfo(severity=0.3, victim="self", violator="围观者"))),
+          ("破剑认主，神器现世", Event(N, affects="self", caused_by=None, intent=Intent.NONE,
+                                   goal_impacts={"esteem": 0.7, "craft": 0.5}, novelty=0.9,
+                                   pleasantness=0.8, expectancy_violation=0.9, probability=1.0,
+                                   insight=True))]),
+        ("忠犬报恩", "温情系", "受助（感激）→ 报恩让对方翻身（naches：我助之人成功的骄傲+为他高兴）。",
+         [("落难时被陌生人所救", Event(F, affects="self", caused_by="恩人", intent=Intent.DELIBERATE,
+                                 goal_impacts={"bond": 0.5}, novelty=0.6, pleasantness=0.6,
+                                 probability=1.0,
+                                 bond=BondInfo(delta=0.45, sudden=True))),
+          ("报恩，让对方一夜翻身", Event(A, affects="恩人", caused_by="self", intent=Intent.DELIBERATE,
+                                    goal_impacts={"esteem": 0.4}, novelty=0.7, pleasantness=0.8,
+                                    expectancy_violation=0.6, probability=1.0, effort=0.7))]),
+    ]
 
 
 def _rep_events() -> dict:
@@ -753,6 +879,77 @@ def main() -> int:
                 if len(llm_log) > 300:
                     break
 
+    # ---- 12) 类型覆盖映射（展示层归纳：文献/生活常见事件类型 → 11 类归入路径）----
+    # 11 类是闭集（调研 §2.5：SEC×OCC×CRT 交集归纳，具体事件归入 ≥1 类）；
+    # 下表说明其余常见类型如何折入——归入路径与情绪走向为手写归纳，非引擎新类别。
+    coverage = {
+        "note": "11 类是 SEC（评价四检查）× OCC（三分支）× CRT（核心关系主题）三框架交集归纳的闭集："
+                "任何具体事件至少归入一类，再乘横切维度与四种子信息组合出完整输入空间。"
+                "文献与生活中的其他常见事件类型按下表归入。",
+        "cross": [
+            ("时间指向", "过去→后悔/怀念；未来→希望/焦虑；现在→当下情绪（time_orientation）"),
+            ("指向对象", "自己 self / 亲近者 / 陌生人 / 虚构角色 fictional:x / 群体 group:x（affects）"),
+            ("真实性", "虚构度与安全框架：真实性降低不降低情绪强度，但改变后果与调节（虚构=安全框架默认开）"),
+        ],
+        "rows": [
+            ("被排斥/被拉黑/被孤立", "F_bond",
+             "break_up 路径 → 社会疼痛/孤独/心碎（Williams 排斥模型是文献独立大域，引擎折入联结类；不止恋爱决裂，一切「被排除在关系之外」同路径）"),
+            ("两难抉择（职业 vs 家庭、忠义难两全）", "（无需独立类）",
+             "goal_impacts 多键混合符号：一键促进、一键阻碍 → 快乐/焦虑复合激活"),
+            ("集体仪式/演唱会大合唱/球赛人浪", "F_bond",
+             "affects=\"group:x\" + bond 骤增 → 集体欢腾 collective_effervescence"),
+            ("机会窗口（末班车/限时 offer/比赛最后一分钟）", "B_threat / D_achievement",
+             "probability + urgency 高 → 希望/悬念/紧迫；错失即损失，损失厌恶入场"),
+            ("回忆与怀旧", "K_fiction",
+             "对过去的模拟体验 + time_orientation=past → 怀念（苦甜混合）"),
+            ("被当众表扬/当众出丑", "G_comparison",
+             "地位上行/下行变化 → 自豪/羞耻/屈辱（自我意识族经 internal_standard）"),
+            ("偶遇（故人/美景/神级操作）", "F_bond / I_aesthetic",
+             "novelty 高 → 惊吓/着迷分量叠加在联结或审美路径上"),
+            ("恐怖片/过山车/鬼屋", "B_threat + K_fiction",
+             "safety_frame=1 时恐惧经倒 U 转享受；框架破损（真危险）→ 享受归零、纯恐惧"),
+            ("日常微事件（通勤/天气/消息通知/一杯咖啡）", "任一类（弱激活）",
+             "单点强度低但频次高，经心情 EMA 慢速层累积为情绪基线——三层时间尺度的日常用例"),
+            ("见证他人受苦/感人新闻", "（无需独立类）",
+             "affects=他者 id，经共情特质传导相关性 → 共情疼痛/心疼/怜悯"),
+        ],
+    }
+
+    # ---- 13) 爽点图谱：工业爽点 → 事件序列引擎真算 ----
+    # 爽点不是原子事件类型，是「11 类事件 × 跨事件机制」的序列模式（调研 §5.4 三段结构）。
+    # 序列为手写构造（工业爽点清单归纳：扮猪吃虎/打脸/借刀杀人/宴会反转/绝境反杀/追妻火葬场等），
+    # 每步点燃与轨迹全部引擎真算。
+    _MECH_CATS = ("jie_qi", "shuang", "fiero", "kama_muta", "yi_nan_ping", "relief",
+                  "naches", "schadenfreude", "po_fang", "ke_dao", "heart_flutter", "pride")
+
+    def _seq_run(seq):
+        eng = EmotionEngine(agent)
+        steps = []
+        for label, ev in seq:
+            eng.process(ev, dt_minutes=1.0)
+            expr = eng.expressor.describe(eng.state, top_k=4, min_activation=0.04)
+            fired = [{"zh": en.zh, "word": en.word, "intensity": _r(en.intensity, 2),
+                      "family": en.family, "mech": False} for en in expr.entries]
+            shown = {en.category for en in expr.entries}
+            # 爽点的签名在跨事件机制类（并列饱和时常被挤出 top-k）——强制附带，标 mech
+            for cid in _MECH_CATS:
+                act = eng.state.activation(cid)
+                if act >= 0.04 and cid not in shown:
+                    fired.append({"zh": CATALOG[cid].zh, "word": CATALOG[cid].zh,
+                                  "intensity": _r(act, 2), "family": CATALOG[cid].family,
+                                  "mech": True})
+            steps.append({
+                "label": label, "cat": ev.category.value,
+                "fired": fired,
+                "say": expr.summary,
+            })
+        return steps
+
+    shuangpu = [
+        {"name": name, "tag": tag, "note": note, "steps": _seq_run(seq)}
+        for name, tag, note, seq in _shuangpu_seqs()
+    ]
+
     data = {
         "meta": {
             "version": "0.7.0", "categories": len(CATALOG), "tests": 163, "releases": 7,
@@ -776,6 +973,8 @@ def main() -> int:
         "pipeline": pipeline,
         "sim_matrix": sim_matrix,
         "endings": endings,
+        "coverage": coverage,
+        "shuangpu": shuangpu,
         "mechs": mechs,
         "llm_flow": llm_flow,
         "llm_log": llm_log.strip(),

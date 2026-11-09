@@ -131,3 +131,9 @@ Event(schema: §2.5 11大类 + SEC 子维度字段)
 - **跨事件实体规范化（v0.3 发现，v0.4 已修）**：charges/jie_qi 的对象匹配是字面等值（引擎层语义不变）；LLM 对同一实体输出不同写法（`主管` vs `supervisor`）的失联由适配器层 `EntityResolver` 双防线处理——`NLEventAdapter.adapt` 注入已见实体名单（LLM 复用写法，主防线）+ parse 后别名/已见归一（兜底，别名表用户注入；不做模糊匹配——错归一会让惩罚落到无辜对象）。真实 e2e 验证：claude 侧 roster 注入下事件2 直接复用 `justice_target=主管` → 解气触发。已知边界：`stimulus_key` 不归一（LLM 写法漂移时习惯化计数静默失效）。
 - **goal id 契约化（v0.4 复审观察，v0.5 已修）**：LLM 抽取自由格式 goal id（如「方案获认可与署名」）与 profile 目标词表失联 → R-INT-01 正确归零但静默失联。`NLEventAdapter` 增 `goal_ids`/`goal_aliases`——adapt 时把主体目标词表注入抽取 prompt（真实 e2e：claude 与 codex 输出键全部落回 `esteem`），parse 后别名映射（映射后同键同号取绝对值更大者、异号叠加），表外键保留原样 + warning 可见化；引擎语义不变。附带（同轮真实输出实证）：parse 对 null 值宽容为省略（codex 实测 `"novelty":null`——LLM 常用 null 表达省略，此前报「非数值」错误）。
 - 儿童发展、临床谱不在范围（调研 §7）。
+- **v0.8 候选缺口（2026-11-09 深度调研结论：11 类原子闭集站得住——SEC×OCC×CRT 交集归纳，Scherer 本人立场是维度空间无穷（Moors 2014），文献无多于 11 的原子事件大类清单；爽点是跨事件序列模式非原子类型，由机制层承载（R-APP-02 解气链、R-DYN-03 兴奋转移、R-APP-05 kama muta、峰终），已在可视化「爽点图谱」页 12 序列真算呈现）。以下 5 项为文献有独立地位、引擎折入或未建的事件域，待逐项评审（文献支撑×引擎一致性×增量价值）后拍板建否：**
+  1. **性/欲望域（Panksepp LUST）**：七原生系统之一，证据独立；当前散在 F_romantic（联结侧）+ J_somatic（躯体愉快侧）折中，无欲望特有动机成分（craving/wanting 主导）。
+  2. **嬉戏/玩闹（Panksepp PLAY）**：七原生系统之一；amusement 只覆盖幽默子集，rough-and-tumble 式社交欢乐（笑声、追逐、无害越界）无类型承载。
+  3. **被排斥（Williams 排斥模型）**：文献为独立大域（四种需求 Belonging/Esteem/Control/Meaningful existence 受威胁 + 反社会与亲社会双路径反应）；当前折入 F_bond 的 break_up 变体，覆盖人际丧失子集，群体排斥/陌生人排斥不可表达。
+  4. **目标冲突/两难（ambivalence）**：无显式冲突检测；两难场景靠混合 goal_impacts 叠加近似，正负情绪并存时按激活排序取 top，矛盾感（同时想与不想、犹豫）无直接映射。
+  5. **近失效应（near-miss）**：赌博/竞技文献独立效应（差一点中奖与真中奖激活相似、驱动再试）；当前 J_pleasant + RPE 部分覆盖但无「差一点」特化信号。
