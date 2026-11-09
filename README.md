@@ -63,7 +63,7 @@ event = NLEventAdapter(llm_call=claude_cli_call).adapt("反派当众羞辱主角
 - 参数标定：倒U顶点 `FEAR_ENJOYMENT_PEAK=0.84` 由 Andersen 2020 OSF 开放数据拟合
   （Likert 7.55/9，换算假设 `fear_engine = fear_likert/9`；delta-method 95% CI [0.59, 1.09]；
   复现脚本 [scripts/fit_fear_enjoyment_peak.py](scripts/fit_fear_enjoyment_peak.py)）
-- 测试：`python -m pytest tests/ -q`（178 项：单元 + 短剧/游戏/音乐/运动/社交等 13 个场景）
+- 测试：`python -m pytest tests/ -q`（196 项：单元 + 短剧/游戏/音乐/运动/社交等 14 个场景）
 - 任务状态：[.tasks/emotion-os-v0.6.task.md](.tasks/emotion-os-v0.6.task.md)（v0.1–v0.5 见同目录）
 
 ## 发布

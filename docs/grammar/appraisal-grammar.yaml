@@ -137,6 +137,105 @@ rules:
       - example: "目标毫无悬念地未达成（near_miss=0）"
       - counter: 若输出 bu_gan_xin 则违反近失前提——正确输出仅 disappointment（差很多=纯失望，无再试驱动）
 
+  - rule_id: R-APP-11
+    description: >
+      羞辱（v0.9 Izard 羞耻-屈辱并列 / HUMAINE / Torres & Bergner 2010/2012 评价结构）：
+      当众(public_setting>0.2) × 他人施加贬低(moral victim=self) × 不应得 × 无防御(低控制) → 屈辱。
+      与委屈分流：wei_yuan 无需公开场合（被错待无处申辩即可）；qu_ru 的扳机是当众地位降。
+      私下被批评不得报屈辱主导。
+    formal_check: pytest:tests/scenarios/test_v09_gaps.py::TestHumiliation
+    formal_check_note: 成对断言（当众贬低→屈辱出场；同事件私下版本→屈辱显著更低、委屈主导）。
+    valid_examples:
+      - "庆功宴上被上司当众摔文件羞辱(public=0.9, severity=0.8, control低) → 屈辱(受辱档)+委屈复合"
+      - "婚礼上伴郎当众揭短让新人难堪 → 屈辱+义愤（目击者加成 public 分量）"
+    edge_or_counter:
+      - example: "一对一办公室里被上司严厉批评（private, public_setting=0）"
+      - counter: 若报屈辱主导则违反公开性要素——正确输出委屈/挫败；屈辱必须有观众
+
+  - rule_id: R-APP-12
+    description: >
+      仇恨（v0.9 OCC 复合[悲+谴责] / HUMAINE hatred）：不可逆伤害(reversibility<0.35) × 施加者归因 ×
+      对施加者态度极负 → 仇恨（+先前对该对象记账加成）。区别愤怒的当下性（怒对阻碍的发作、
+      分钟级衰减）与怨恨的可衰减性：恨是态度化持续（半衰期单独覆盖 120 分钟）。
+    formal_check: pytest:tests/scenarios/test_v09_gaps.py::TestHatred
+    formal_check_note: 成对断言（不可逆+态度极负→仇恨；可逆伤害同条件→仇恨趋零仅愤怒/怨恨）。
+    valid_examples:
+      - "凶手害死至亲且不可逆(reversibility=0.1, attitude=-0.9) → 仇恨(恨之入骨档)+悲恸复合"
+      - "先被亏待记账后再次被同一对象不可逆伤害 → 仇恨按 charges 加成更强"
+    edge_or_counter:
+      - example: "同事搞砸了可补救的项目损失（reversibility=0.8）"
+      - counter: 若报仇恨则违反不可逆性要素——正确输出愤怒/挫败；恨需要终局性伤害
+
+  - rule_id: R-APP-13
+    description: >
+      自负（v0.9 Tangney & Tracy 双型自豪）：自归因成就 × 低努力 → hubristic 型（「我了不起」
+      的全局稳定自我归因——低 effort 为其行为代理）；与 authentic pride 用 effort 加权天然分流：
+      同一成就下努力型自豪升/自负降，天赋型自负升/自豪降。
+    formal_check: pytest:tests/scenarios/test_v09_gaps.py::TestHubristicPride
+    formal_check_note: 成对断言（同成就 effort 0.1 vs 0.9 的 ao_man/pride 反向对比）。
+    valid_examples:
+      - "轻松碾压对手夺冠(effort=0.1, 成就自归因) → 自负(沾沾自喜档)高于自豪"
+      - "十年苦练终夺冠(effort=0.9) → 自豪档高于自负（高努力硬归零傲慢）"
+    edge_or_counter:
+      - example: "低努力但归因运气/他人（caused_by≠self）"
+      - counter: 若报自负则违反自归因前提——正确输出幸运感/感激；自负需要「是我了不起」
+
+  - rule_id: R-APP-14
+    description: >
+      错失恐惧（v0.9 Przybylski 2013 FOMO，SDT relatedness 受挫）：他人正在获益而自己缺席
+      (fomo>0.05) × 窗口临近(urgency) × 不可及感（低控制放大）→ 错失恐惧。wanting=0.7
+      （刷新/赶去在场的行动驱动）。
+    formal_check: pytest:tests/scenarios/test_v09_gaps.py::TestFOMO
+    formal_check_note: 成对断言（缺席+窗口→fomo 出场且 wanting 注入；无缺席普通焦虑事件→不误报）。
+    valid_examples:
+      - "好友群里直播聚会盛况而自己加班缺席(fomo=0.8, urgency=0.7) → 错失恐惧(怕错过档)；同场不出无聊——缺席焦虑是高投入态非价值枯竭"
+      - "限量发售即将截止(他人已抢到) → 错失恐惧驱动立刻下单（wanting 主导）"
+    edge_or_counter:
+      - example: "普通截止日期前的工作焦虑（无他人在场获益信号）"
+      - counter: 若报 fomo 则违反缺席-获益结构——正确输出焦虑；FOMO 需要社交参照系
+
+  - rule_id: R-APP-15
+    description: >
+      崇拜（v0.9 Cowen & Keltner 27 的 adoration——27 类中引擎唯一未建的独立类）：
+      对象奉献性吸引(aesthetic.devotion) × 对对象态度 → 崇拜。对象属性评价第三型：
+      skill→钦佩（见证卓越）/ virtue→崇高（见证美德）/ devotion→崇拜（对象存在本身的
+      敬仰爱慕——偶像/神明/慕强）。
+    formal_check: pytest:tests/scenarios/test_v09_gaps.py::TestAdoration
+    formal_check_note: 成对断言（devotion+喜爱态度→崇拜出场；对厌恶对象同等 devotion 信号→崇拜被态度门压低）。
+    valid_examples:
+      - "见到多年偶像本人(devotion=0.9, attitude=0.8) → 崇拜(仰慕档)+着迷"
+      - "朝圣者瞻仰圣物(devotion=0.8) → 崇拜+敬畏复合"
+    edge_or_counter:
+      - example: "对厌恶对象的技能见证（devotion=0, skill=0.8）"
+      - counter: 若报崇拜则混淆对象评价三型——正确输出钦佩（技能型）；崇拜需要 devotion 通道
+
+  - rule_id: R-APP-16
+    description: >
+      自怜（v0.9 HUMAINE self-pity）：委屈(wei_yuan>0.3) × 无人看见（被无视/孤独）× 低控制 →
+      受害感的自我沉溺。与委屈分流：委屈是被错待状态，自怜是对状态的自我聚焦放大（需孤立感共同在场）。
+    formal_check: pytest:tests/scenarios/test_v09_gaps.py::TestSelfPity
+    formal_check_note: 成对断言（委屈+被无视→自怜出场；同委屈但有支持信号→自怜显著更低）。
+    valid_examples:
+      - "付出不被看见反被无视，深夜独自委屈(wei_yuan+invisibility 高) → 自怜(顾影自怜档)"
+      - "被错待但好友立刻来安慰陪伴 → 委屈在场、自怜低（支持缓冲）"
+    edge_or_counter:
+      - example: "纯损失（无被错待结构）"
+      - counter: 若报自怜则违反委屈前置——正确输出悲伤/失望；自怜需要受害感评价
+
+  - rule_id: R-APP-17
+    description: >
+      物哀（v0.9 HUMAINE 收录 mono no aware）：美好在场（beauty/pleasantness）× 将逝觉察
+      (transience>0.05) → 无常的审美化哀愁（效价微负偏甜：品味性悲伤）。与怀旧分流：
+      nostalgia=past 指向已逝之美的回望；wu_ai=当下觉察将逝（樱花将落/最后一课/曲终人散）。
+    formal_check: pytest:tests/scenarios/test_v09_gaps.py::TestMonoNoAware
+    formal_check_note: 成对断言（美好+将逝→物哀出场；同美好无将逝→仅美感不出物哀）。
+    valid_examples:
+      - "毕业最后一课看着夕阳中的教室(beauty=0.7, transience=0.8) → 物哀(怅然若失档)"
+      - "樱花盛开且即将凋落 → 物哀（美好×无常）"
+    edge_or_counter:
+      - example: "纯损失性终结（无美好分量：项目黄了）"
+      - counter: 若报物哀则违反美好前提——正确输出悲伤/失望；物哀需要对将逝之美的品味
+
   - rule_id: R-INT-01
     description: >
       强度乘法结构（调研§6.3.3、§1.1）：intensity = 事件因子(§4.1) × 个体因子(§4.2) × 状态因子(§4.3)；

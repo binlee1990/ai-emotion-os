@@ -65,6 +65,9 @@ class AestheticInfo:
     beauty: float = 0.0            # 形式美→美感
     skill: float = 0.0             # 卓越能力→钦佩
     virtue: float = 0.0            # 美德见证→崇高（与 MoralInfo.virtue 互补：这里指旁观见证）
+    devotion: float = 0.0          # 对象奉献性吸引→崇拜（v0.9 Cowen 27 唯一缺项 adoration：
+                                   # 对象存在本身的敬仰爱慕——偶像/神明/慕强第三型，
+                                   # 与 skill/virtue 并列的对象属性维度）
 
 
 @dataclass(frozen=True)
@@ -111,6 +114,13 @@ class Event:
     insight: bool = False                      # 理解发生（aha，§2.5 H）
     near_miss: float = 0.0                     # 差一点程度 0–1（v0.8 近失效应：目标未达成
                                                # 但接近——赌博/竞技文献，驱动再试）
+    public_setting: float = 0.0                # 当众程度 0–1（v0.9 羞辱判定要素之一：
+                                               # 有目击者/公开场合的贬低事件——Torres & Bergner
+                                               # 公开性+他人施加+不应得+无防御+地位降）
+    fomo: float = 0.0                          # 错失在场感 0–1（v0.9 FOMO：他人正在获益
+                                               # 而自己缺席——Przybylski 2013 relatedness 受挫）
+    transience: float = 0.0                    # 无常/将逝觉察 0–1（v0.9 物哀：美好将逝
+                                               # 的觉察——区别 nostalgia 的「已逝」回望）
 
     # 安全框架与虚构（§6.3.4）
     safety_frame: float = 1.0                  # 1=确认安全/虚构 … 0=真实后果

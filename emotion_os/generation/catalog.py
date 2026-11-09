@@ -149,6 +149,22 @@ _CATALOG: list[Category] = [
     _c("ambivalence", "矛盾", "ambivalence (co-activated mixed valence)", EPISTEMIC, 0.0, 0.5, -0.3, 0.2, "悬而未决/摇摆"),
     # 近失效应（Clark 2009/2010）：差一点激活与真赢相似并驱动再试——wanting 高是本类要点
     _c("bu_gan_xin", "不甘心", "near-miss vexation (so close)", PROSPECT, -0.45, 0.65, -0.1, 0.5, "再试一次", wanting=0.85, liking=0.1),
+    # v0.9 补全（情绪类别层深度调研缺口：十二家族与全部主流清单同构，缺评价结构
+    # 独立的叶子类别——§8 v0.9 候选清单）
+    # 羞辱（Izard 羞耻-屈辱并列 / HUMAINE / Torres & Bergner：公开+他人施加+不应得+无防御+地位降）
+    _c("qu_ru", "屈辱", "humiliation", ANGER, -0.7, 0.6, -0.6, 0.1, "隐忍/雪耻", wanting=0.4),
+    # 仇恨（OCC 复合：悲+谴责；区别 anger 的当下性与 resentment 的可衰减性）
+    _c("chou_hen", "仇恨", "hatred", ANGER, -0.8, 0.5, 0.3, 0.0, "记恨/疏离或报复", wanting=0.5),
+    # 傲慢型自豪（Tangney & Tracy 双型：归因全局稳定自我「我了不起」vs authentic「我做得好」）
+    _c("ao_man", "自负", "hubristic pride", SELF_CONSCIOUS, 0.5, 0.5, 0.9, 0.0, "炫耀/轻慢"),
+    # FOMO（Przybylski 2013：relatedness 受挫的负性状态——他人正在获益而自己缺席）
+    _c("fomo", "错失恐惧", "fear of missing out", FEAR, -0.4, 0.6, -0.4, 0.3, "刷新/赶去在场", wanting=0.7),
+    # 崇拜（Cowen & Keltner 27 的 adoration：对象存在本身的敬仰爱慕——钦佩[技能]/崇高[美德]第三型）
+    _c("chong_bai", "崇拜", "adoration", AESTHETIC, 0.65, 0.45, -0.2, 0.1, "追随/守护", liking=0.8),
+    # 自怜（HUMAINE：受害感+无人援助的自我沉溺）
+    _c("zi_lian", "自怜", "self-pity", SADNESS, -0.5, 0.25, -0.5, 0.0, "沉溺/诉苦"),
+    # 物哀（HUMAINE 收录 mono no aware：无常觉察的审美化哀愁——美好将逝的品味性悲伤）
+    _c("wu_ai", "物哀", "mono no aware (pathos of things)", AESTHETIC, -0.15, 0.25, -0.1, 0.1, "品味/珍惜", liking=0.5),
 ]
 
 CATALOG: dict[str, Category] = {c.id: c for c in _CATALOG}
@@ -162,6 +178,7 @@ HALF_LIFE_BY_CATEGORY: dict[str, float] = {
     "shuang": 25.0,
     "po_fang": 30.0,
     "ambivalence": 30.0,  # 决策性撕扯比认识性惊异持久（epistemic 族默认 5 分钟过短；自设待标定）
+    "chou_hen": 120.0,    # 仇恨是态度化持续情绪（远长于 anger 12 分钟；自设待标定）
 }
 
 assert len(CATALOG) >= 50, "架构合同：类别目录 ≥50"

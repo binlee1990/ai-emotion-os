@@ -112,6 +112,13 @@ class AppraisalEngine:
             # 玩伴态度传导不在此实现（affects=self 是常态，借用 affects 会误触
             # 共情折扣；partner 字段留待真实需要时再建，不预建）
             goal_relevance = max(goal_relevance, _clip(0.3 + 0.5 * event.play.level))
+        if event.fomo > 0.05:
+            # 连接需要：错失在场感本身即相关（v0.9 Przybylski——relatedness 受挫）
+            goal_relevance = max(goal_relevance, _clip(0.3 + 0.5 * event.fomo))
+        if event.transience > 0.05:
+            # 意义需要：无常觉察本身即相关（v0.9 物哀——有限性触及意义感；
+            # 审美分量携带时另有 0.45 基线）
+            goal_relevance = max(goal_relevance, _clip(0.35 + 0.5 * event.transience))
         if event.social is not None:
             # 自尊需要：社会比较默认触及（§2.5 G）
             goal_relevance = max(goal_relevance, max(0.35, 0.8 * agent.goal_importance("esteem")))

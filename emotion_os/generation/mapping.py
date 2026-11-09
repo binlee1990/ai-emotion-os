@@ -65,6 +65,25 @@ def _anger(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: A
     # 憋屈：低控制下的持续愤怒-厌恶-悲伤混合（爽的前置状态，§3.3）
     pressure = max(ob, 0.8 * ext_neg)
     out["bie_qu"] = _b01(rel * pressure * (1.0 - r.control) * 1.3)
+    # 屈辱（v0.9 Torres & Bergner 评价结构）：当众(public_setting) × 他人施加贬低
+    # (victim=self) × 不应得(非自我理想违背——moral 为他人施加) × 无防御(低控制)。
+    # 与委屈分流：wei_yuan 无需公开（被错待无处申辩），qu_ru 的扳机是当众地位降。
+    # 他人施加由 moral.violator 承载；violator 缺失时与 wei_yuan 同款宽松（调用方守约）
+    if (e.public_setting > 0.2 and e.moral is not None
+            and e.moral.victim == "self" and not e.moral.virtue):
+        pub_ramp = _b01((e.public_setting - 0.2) / 0.6)
+        out["qu_ru"] = _b01(rel * ext_neg * pub_ramp * (1.0 - r.control) * 1.5)
+    # 仇恨（v0.9 OCC 复合=悲+谴责）：不可逆伤害(reversibility 低) × 施加者 × 态度极负
+    # (+先前记账加成)——区别 resentment：怒是对当下阻碍的发作，恨是对施加者的
+    # 态度化持续；区别在于不可逆性与对象化。态度门为硬门：att≤-0.2 起坡、
+    # -0.7 饱和（陌生/略好感的施加者不产仇恨——恨需要对象化的极负评价）
+    if (e.moral is not None and e.moral.violator and not e.moral.virtue
+            and e.reversibility < 0.35):
+        att = a.attitude_toward(e.moral.violator)
+        charge = s.charges.get(e.moral.violator, 0.0)
+        att_gate = _b01((-att - 0.2) / 0.5)
+        hate_base = rel * ext_neg * (1.0 - e.reversibility) * att_gate
+        out["chou_hen"] = _b01(hate_base * (1.0 + 0.8 * min(1.0, charge)))
 
 
 def _fear(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
@@ -83,6 +102,10 @@ def _fear(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Ac
     # threat_level 已含 p，这里改用不含 p 的阻碍底座，避免双重计入使峰值漂到 2/3）
     stakes = r.goal_relevance * max(0.0, -r.conduciveness)
     out["suspense"] = _b01(stakes * 4.0 * prob * (1.0 - prob)) * (0.4 + 0.6 * r.urgency)
+    # 错失恐惧（v0.9 Przybylski 2013）：他人正在获益而自己缺席 × 窗口临近 ×
+    # 不可及感（低控制放大）——relatedness 受挫的焦虑族变体
+    if e.fomo > 0.05:
+        out["fomo"] = _b01(r.goal_relevance * e.fomo * (0.5 + 0.5 * r.urgency) * (1.3 - 0.5 * r.control))
 
 
 def _disgust(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
@@ -198,6 +221,11 @@ def _self_conscious(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectStat
             out["embarrassment"] = int_neg * r.novelty * 0.7
     if int_pos > 0 and max(0.0, r.conduciveness) > 0.05:
         out["pride"] = _b01(int_pos * (0.4 + 0.6 * e.effort))
+        # 自负（v0.9 Tangney & Tracy hubristic 型）：自归因成就 × 低努力——归因到
+        # 全局稳定自我（天赋/身份「我了不起」）的行为代理；与 pride（努力加权）
+        # 天然分流：同一成就 effort 低则傲慢分量升、authentic 分量降。
+        # effort>0.75 硬归零（高努力成就不产傲慢——两型是竞争构念而非叠加）
+        out["ao_man"] = _b01(int_pos * max(0.0, r.conduciveness) * _b01(0.75 - e.effort) * 1.3)
 
 
 def _social_moral(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
@@ -266,7 +294,9 @@ def _epistemic(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, ou
     else:
         out["confusion"] = _b01(nov * 0.55 * (1.0 - min(1.0, abs(r.conduciveness) + abs(r.external_standard))))
     # 无聊：信息/价值枯竭（注意被占用但无价值，§3.3 Pekrun）
-    if r.goal_relevance > 0.05 and abs(r.conduciveness) < 0.08 and nov < 0.15 and abs(r.pleasantness) < 0.2:
+    if (r.goal_relevance > 0.05 and e.fomo < 0.05
+            and abs(r.conduciveness) < 0.08 and nov < 0.15 and abs(r.pleasantness) < 0.2):
+        # FOMO 在场时不出无聊（缺席焦虑是高投入状态，价值枯竭前提不成立）
         out["boredom"] = _b01(r.goal_relevance * 0.9 * (0.15 - nov) * 6.0)
     if e.aesthetic is not None:
         out["fascination"] = _b01(nov * max(e.aesthetic.beauty, e.aesthetic.skill))
@@ -277,12 +307,25 @@ def _aesthetic(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, ou
         rel = max(r.goal_relevance, 0.45)        # 审美：内在愉悦度主导，相关性退居次要（§3.3）
         out["beauty"] = _b01(rel * e.aesthetic.beauty)
         out["awe"] = _b01(rel * e.aesthetic.vastness * (0.7 + 0.3 * a.personality.openness) * (0.8 + 0.4 * r.novelty))
+        # 崇拜（v0.9 Cowen 27 adoration）：对象奉献性吸引 × 对其态度——对象属性
+        # 第三型（skill→钦佩 / virtue→崇高 / devotion→崇拜）；affects 即对象 id，
+        # 指向自身时不出（自我崇拜语义未定义，抑制）
+        if e.aesthetic.devotion > 0.05 and r.affects not in ("self", a.agent_id):
+            att = a.attitude_toward(r.affects)
+            out["chong_bai"] = _b01(rel * e.aesthetic.devotion * (0.5 + 0.5 * _b01(att)))
     if r.pleasantness > 0:
         if e.time_orientation.value == "past":
             out["nostalgia"] = _b01(0.7 * r.pleasantness)
         out["relaxation"] = _b01(0.6 * r.pleasantness * (1.0 - r.novelty))
         if e.category.value == "J_body":
             out["vitality"] = _b01(0.8 * r.pleasantness)
+    # 物哀（v0.9 mono no aware）：美好在场 × 将逝觉察——无常的审美化哀愁。
+    # 与怀旧分流：nostalgia=past 指向已逝之美的回望，wu_ai=当下觉察将逝
+    # （樱花将落/最后一课/曲终人散）。美好是必要分量（乘法门，非地板）：纯损失
+    # 性终结不出物哀（那 是悲伤/失望）；past 指向归怀旧，不双出
+    if e.transience > 0.05 and e.time_orientation.value != "past":
+        beauty_mag = max(e.aesthetic.beauty if e.aesthetic else 0.0, max(0.0, r.pleasantness))
+        out["wu_ai"] = _b01(r.goal_relevance * e.transience * beauty_mag * 1.1)
 
 
 def _prospect(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, out: Acts) -> None:
@@ -399,6 +442,13 @@ def _composites(r: AppraisalResult, e: Event, a: AgentProfile, s: AffectState, o
     # 力量感高者走亲社会路径（求重新接纳，已由 loneliness 倾向承载）
     if e.bond is not None and e.bond.excluded > 0.4 and r.power < 0.4:
         out["anger"] = max(out.get("anger", 0.0), _b01(r.goal_relevance * e.bond.excluded * (1.0 - r.power) * 1.2))
+    # 自怜（v0.9 HUMAINE）：委屈 × 无人看见（被无视/孤独）——受害感+孤立感的
+    # 自我沉溺；与 wei_yuan 分流：委屈是状态，自怜是对状态的自我聚焦放大
+    wy = out.get("wei_yuan", 0.0)
+    if wy > 0.3:
+        unsupport = max(out.get("invisibility", 0.0), 0.8 * out.get("loneliness", 0.0))
+        if unsupport > 0.15:
+            out["zi_lian"] = _b01(wy * (0.4 + 0.6 * unsupport) * (1.0 - r.control) * 1.35)
 
 
 FAMILY_EVALUATORS = (
