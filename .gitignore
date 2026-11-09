@@ -12,3 +12,6 @@ dist/
 
 # 本地 CLI 端到端日志（含外部服务返回原文，体积大）
 .tasks/llm-e2e-raw/
+
+# wrangler 本地缓存（Cloudflare Pages 部署临时物）
+.wrangler/
