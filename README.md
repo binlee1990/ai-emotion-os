@@ -1,6 +1,6 @@
 # ai-emotion-os
 
-基于评价理论的「事件 → 评价 → 情绪」可计算情绪引擎（Python 库）。知识基础与理论依据见 [research/人类情绪全景调研.md](research/人类情绪全景调研.md)；设计与接口合同见 [docs/architecture-contract.md](docs/architecture-contract.md)；整体可视化见 [docs/visualization.html](docs/visualization.html)（引擎真实输出驱动，`python examples/generate_visualization.py` 重新生成）。
+基于评价理论的「事件 → 评价 → 情绪」可计算情绪引擎（Python 库）。知识基础与理论依据见 [research/人类情绪全景调研.md](research/人类情绪全景调研.md)；设计与接口合同见 [docs/architecture-contract.md](docs/architecture-contract.md)；整体可视化 **[线上](https://ai-emotion-os.pages.dev/)**：[ai-emotion-os.pages.dev](https://ai-emotion-os.pages.dev/visualization.html)（引擎真实输出驱动，本地文件为 [docs/visualization.html](docs/visualization.html)，`python examples/generate_visualization.py` 重新生成）。
 
 安装（Python ≥3.10，零运行时依赖）：
 
@@ -63,7 +63,18 @@ event = NLEventAdapter(llm_call=claude_cli_call).adapt("反派当众羞辱主角
 - 参数标定：倒U顶点 `FEAR_ENJOYMENT_PEAK=0.84` 由 Andersen 2020 OSF 开放数据拟合
   （Likert 7.55/9，换算假设 `fear_engine = fear_likert/9`；delta-method 95% CI [0.59, 1.09]；
   复现脚本 [scripts/fit_fear_enjoyment_peak.py](scripts/fit_fear_enjoyment_peak.py)）
-- 测试：`python -m pytest tests/ -q`（162 项：单元 + 短剧/游戏/音乐/运动/社交等 12 个场景）
+- 测试：`python -m pytest tests/ -q`（178 项：单元 + 短剧/游戏/音乐/运动/社交等 13 个场景）
 - 任务状态：[.tasks/emotion-os-v0.6.task.md](.tasks/emotion-os-v0.6.task.md)（v0.1–v0.5 见同目录）
+
+## 发布
+
+静态部署 Cloudflare Pages（项目 `ai-emotion-os`，https://ai-emotion-os.pages.dev/ ）：无构建，输出目录 `docs`。更新页面后本地重新生成并直发：
+
+```bash
+python examples/generate_visualization.py
+npx wrangler pages deploy docs --project-name=ai-emotion-os --branch=main
+```
+
+`docs/_headers` 让 visualization.html 不走缓存（URL 不变内容随版本更新）。
 
 范围：结构化事件输入的研究原型；运行时配置与未决项见架构合同 §8。

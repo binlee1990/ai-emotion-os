@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- ai-emotion-os 双色温标识：正朱 + 负靛（页面同款色系） -->
+  <rect width="64" height="64" rx="14" fill="#F7F4EC"/>
+  <circle cx="24" cy="36" r="13" fill="#A33B2A" opacity="0.92"/>
+  <circle cx="40" cy="28" r="13" fill="#4E6A8C" opacity="0.85"/>
+</svg>

@@ -1,0 +1,5 @@
+# Cloudflare Pages 缓存策略（参考 ai-internet-history 惯例）
+# visualization.html 为单文件自包含页面：URL 不变、内容随版本更新——不走缓存，
+# 保证访问者始终看到最新生成版本；其余文档文件默认。
+/visualization.html
+  Cache-Control: no-cache
